@@ -23,11 +23,19 @@ final class ParserTest extends TestCase
         $this->printer = new AstPrinter();
     }
 
-    private function parse(string $source): string
+        private function parse(string $source): string
     {
         $tokens = $this->lexer->tokenize($source);
         $ast = $this->parser->parse($tokens);
-        return $this->printer->print($ast);
+        return str_replace(["\r\n", "\r"], "\n", $this->printer->print($ast));
+    }
+
+    private function assertAst(string $expected, string $source): void
+    {
+        $this->assertSame(
+            str_replace(["\r\n", "\r"], "\n", $expected),
+            $this->parse($source),
+        );
     }
 
     private function assertParseError(string $source, string $messagePart): void
@@ -46,7 +54,7 @@ final class ParserTest extends TestCase
 
     public function testEmptyProgram(): void
     {
-        $this->assertSame("Program", $this->parse('<?php '));
+        $this->assertAst("Program", $this->parse('<?php '));
     }
 
     // =========================================================================
@@ -60,7 +68,7 @@ final class ParserTest extends TestCase
           Echo
             Literal(string, 'hello')
         TXT;
-        $this->assertSame($expected, $this->parse('<?php echo "hello";'));
+        $this->assertAst($expected, '<?php echo "hello";');
     }
 
     public function testEchoMultiple(): void
@@ -71,7 +79,7 @@ final class ParserTest extends TestCase
             Literal(string, 'a')
             Literal(string, 'b')
         TXT;
-        $this->assertSame($expected, $this->parse('<?php echo "a", "b";'));
+        $this->assertAst($expected, '<?php echo "a", "b";');
     }
 
     // =========================================================================
@@ -85,7 +93,7 @@ final class ParserTest extends TestCase
           ExprStmt
             Literal(int, 42)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php 42;'));
+        $this->assertAst($expected, '<?php 42;');
     }
 
     public function testFloatLiteral(): void
@@ -95,7 +103,7 @@ final class ParserTest extends TestCase
           ExprStmt
             Literal(float, 3.14)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php 3.14;'));
+        $this->assertAst($expected, '<?php 3.14;');
     }
 
     public function testBoolLiteral(): void
@@ -105,7 +113,7 @@ final class ParserTest extends TestCase
           ExprStmt
             Literal(bool, true)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php true;'));
+        $this->assertAst($expected, '<?php true;');
     }
 
     public function testNullLiteral(): void
@@ -115,7 +123,7 @@ final class ParserTest extends TestCase
           ExprStmt
             Literal(NULL, NULL)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php null;'));
+        $this->assertAst($expected, '<?php null;');
     }
 
     // =========================================================================
@@ -129,7 +137,7 @@ final class ParserTest extends TestCase
           ExprStmt
             Var($a)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php $a;'));
+        $this->assertAst($expected, '<?php $a;');
     }
 
     // =========================================================================
@@ -145,7 +153,7 @@ final class ParserTest extends TestCase
               Literal(int, 1)
               Literal(int, 2)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php 1 + 2;'));
+        $this->assertAst($expected, '<?php 1 + 2;');
     }
 
     public function testPrecedenceMultiplicationOverAddition(): void
@@ -159,7 +167,7 @@ final class ParserTest extends TestCase
                 Literal(int, 2)
                 Literal(int, 3)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php 1 + 2 * 3;'));
+        $this->assertAst($expected, '<?php 1 + 2 * 3;');
     }
 
     public function testParenthesesOverridePrecedence(): void
@@ -173,7 +181,7 @@ final class ParserTest extends TestCase
                 Literal(int, 2)
               Literal(int, 3)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php (1 + 2) * 3;'));
+        $this->assertAst($expected, '<?php (1 + 2) * 3;');
     }
 
     public function testLeftAssociativitySubtraction(): void
@@ -188,7 +196,7 @@ final class ParserTest extends TestCase
                 Literal(int, 2)
               Literal(int, 3)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php 1 - 2 - 3;'));
+        $this->assertAst($expected, '<?php 1 - 2 - 3;');
     }
 
     public function testPowerRightAssociative(): void
@@ -203,7 +211,7 @@ final class ParserTest extends TestCase
                 Literal(int, 3)
                 Literal(int, 2)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php 2 ** 3 ** 2;'));
+        $this->assertAst($expected, '<?php 2 ** 3 ** 2;');
     }
 
     // =========================================================================
@@ -218,7 +226,7 @@ final class ParserTest extends TestCase
             Unary(-)
               Literal(int, 5)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php -5;'));
+        $this->assertAst($expected, '<?php -5;');
     }
 
     public function testUnaryNot(): void
@@ -229,7 +237,7 @@ final class ParserTest extends TestCase
             Unary(!)
               Var($a)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php !$a;'));
+        $this->assertAst($expected, '<?php !$a;');
     }
 
     public function testIncrementPrefix(): void
@@ -240,7 +248,7 @@ final class ParserTest extends TestCase
             PreIncDec(++)
               Var($a)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php ++$a;'));
+        $this->assertAst($expected, '<?php ++$a;');
     }
 
     public function testIncrementPostfix(): void
@@ -251,7 +259,7 @@ final class ParserTest extends TestCase
             PostIncDec(++)
               Var($a)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php $a++;'));
+        $this->assertAst($expected, '<?php $a++;');
     }
 
     // =========================================================================
@@ -267,7 +275,7 @@ final class ParserTest extends TestCase
               Var($a)
               Literal(int, 5)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php $a = 5;'));
+        $this->assertAst($expected, '<?php $a = 5;');
     }
 
     public function testChainedAssign(): void
@@ -282,7 +290,7 @@ final class ParserTest extends TestCase
                 Var($b)
                 Literal(int, 5)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php $a = $b = 5;'));
+        $this->assertAst($expected, '<?php $a = $b = 5;');
     }
 
     public function testCompoundAssign(): void
@@ -294,7 +302,7 @@ final class ParserTest extends TestCase
               Var($a)
               Literal(int, 1)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php $a += 1;'));
+        $this->assertAst($expected, '<?php $a += 1;');
     }
 
     // =========================================================================
@@ -314,7 +322,7 @@ final class ParserTest extends TestCase
               Else
                 Literal(int, 2)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php $a ? 1 : 2;'));
+        $this->assertAst($expected, '<?php $a ? 1 : 2;');
     }
 
     public function testShortTernary(): void
@@ -328,7 +336,7 @@ final class ParserTest extends TestCase
               Else
                 Literal(int, 2)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php $a ?: 2;'));
+        $this->assertAst($expected, '<?php $a ?: 2;');
     }
 
     public function testCoalesce(): void
@@ -340,7 +348,7 @@ final class ParserTest extends TestCase
               Var($a)
               Literal(int, 5)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php $a ?? 5;'));
+        $this->assertAst($expected, '<?php $a ?? 5;');
     }
 
     // =========================================================================
@@ -356,7 +364,7 @@ final class ParserTest extends TestCase
               Callee
                 Var($f)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php $f();'));
+        $this->assertAst($expected, '<?php $f();');
     }
 
     public function testCallWithArgs(): void
@@ -371,7 +379,7 @@ final class ParserTest extends TestCase
                 Literal(int, 1)
                 Literal(int, 2)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php $f(1, 2);'));
+        $this->assertAst($expected, '<?php $f(1, 2);');
     }
 
     public function testIndex(): void
@@ -385,7 +393,7 @@ final class ParserTest extends TestCase
               Index
                 Literal(int, 0)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php $a[0];'));
+        $this->assertAst($expected, '<?php $a[0];');
     }
 
     // =========================================================================
@@ -400,7 +408,7 @@ final class ParserTest extends TestCase
             PropertyAccess(->x)
               Var($a)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php $a->x;'));
+        $this->assertAst($expected, '<?php $a->x;');
     }
 
     public function testArrowMethodCall(): void
@@ -413,7 +421,7 @@ final class ParserTest extends TestCase
               Args
                 Literal(int, 1)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php $a->foo(1);'));
+        $this->assertAst($expected, '<?php $a->foo(1);');
     }
 
     // =========================================================================
@@ -429,7 +437,7 @@ final class ParserTest extends TestCase
               Literal(string, 'a')
               Literal(string, 'b')
         TXT;
-        $this->assertSame($expected, $this->parse('<?php "a" . "b";'));
+        $this->assertAst($expected, '<?php "a" . "b";');
     }
 
     public function testDotConcatSpaceBeforeOnly(): void
@@ -441,7 +449,7 @@ final class ParserTest extends TestCase
               Literal(string, 'a')
               Literal(string, 'b')
         TXT;
-        $this->assertSame($expected, $this->parse('<?php "a" ."b";'));
+        $this->assertAst($expected, '<?php "a" ."b";');
     }
 
     public function testDotConcatSpaceAfterOnly(): void
@@ -453,7 +461,7 @@ final class ParserTest extends TestCase
               Literal(string, 'a')
               Literal(string, 'b')
         TXT;
-        $this->assertSame($expected, $this->parse('<?php "a". "b";'));
+        $this->assertAst($expected, '<?php "a". "b";');
     }
 
     public function testDotAccessWithoutSpaces(): void
@@ -464,7 +472,7 @@ final class ParserTest extends TestCase
             DotAccess(.x)
               Var($a)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php $a.x;'));
+        $this->assertAst($expected, '<?php $a.x;');
     }
 
     public function testDotMethodCallWithoutSpaces(): void
@@ -477,7 +485,7 @@ final class ParserTest extends TestCase
               Args
                 Literal(int, 1)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php $a.foo(1);'));
+        $this->assertAst($expected, '<?php $a.foo(1);');
     }
 
     // =========================================================================
@@ -491,7 +499,7 @@ final class ParserTest extends TestCase
           ExprStmt
             New(Foo)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php new Foo;'));
+        $this->assertAst($expected, '<?php new Foo;');
     }
 
     public function testNewWithArgs(): void
@@ -503,7 +511,7 @@ final class ParserTest extends TestCase
               Args
                 Literal(int, 1)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php new Foo(1);'));
+        $this->assertAst($expected, '<?php new Foo(1);');
     }
 
     public function testNewWithNamespace(): void
@@ -513,7 +521,7 @@ final class ParserTest extends TestCase
           ExprStmt
             New(Foo\\Bar)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php new Foo\\Bar;'));
+        $this->assertAst($expected, '<?php new Foo\\Bar;');
     }
 
     // =========================================================================
@@ -532,7 +540,7 @@ final class ParserTest extends TestCase
                 Echo
                   Literal(string, 'oui')
         TXT;
-        $this->assertSame($expected, $this->parse('<?php if ($a) { echo "oui"; }'));
+        $this->assertAst($expected, '<?php if ($a) { echo "oui"; }');
     }
 
     public function testIfElse(): void
@@ -547,7 +555,7 @@ final class ParserTest extends TestCase
             Else
               Block
         TXT;
-        $this->assertSame($expected, $this->parse('<?php if ($a) {} else {}'));
+        $this->assertAst($expected, '<?php if ($a) {} else {}');
     }
 
     public function testIfElseif(): void
@@ -565,7 +573,7 @@ final class ParserTest extends TestCase
               Body
                 Block
         TXT;
-        $this->assertSame($expected, $this->parse('<?php if ($a) {} elseif ($b) {}'));
+        $this->assertAst($expected, '<?php if ($a) {} elseif ($b) {}');
     }
 
     public function testWhile(): void
@@ -578,7 +586,7 @@ final class ParserTest extends TestCase
             Body
               Block
         TXT;
-        $this->assertSame($expected, $this->parse('<?php while ($a) {}'));
+        $this->assertAst($expected, '<?php while ($a) {}');
     }
 
     public function testFor(): void
@@ -600,7 +608,7 @@ final class ParserTest extends TestCase
             Body
               Block
         TXT;
-        $this->assertSame($expected, $this->parse('<?php for ($i = 0; $i < 10; $i++) {}'));
+        $this->assertAst($expected, '<?php for ($i = 0; $i < 10; $i++) {}');
     }
 
     public function testForeachSimple(): void
@@ -615,7 +623,7 @@ final class ParserTest extends TestCase
             Body
               Block
         TXT;
-        $this->assertSame($expected, $this->parse('<?php foreach ($arr as $v) {}'));
+        $this->assertAst($expected, '<?php foreach ($arr as $v) {}');
     }
 
     public function testForeachWithKey(): void
@@ -632,7 +640,7 @@ final class ParserTest extends TestCase
             Body
               Block
         TXT;
-        $this->assertSame($expected, $this->parse('<?php foreach ($arr as $k => $v) {}'));
+        $this->assertAst($expected, '<?php foreach ($arr as $k => $v) {}');
     }
 
     public function testReturn(): void
@@ -642,7 +650,7 @@ final class ParserTest extends TestCase
           Return
             Literal(int, 5)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php return 5;'));
+        $this->assertAst($expected, '<?php return 5;');
     }
 
     public function testReturnVoid(): void
@@ -651,7 +659,7 @@ final class ParserTest extends TestCase
         Program
           Return
         TXT;
-        $this->assertSame($expected, $this->parse('<?php return;'));
+        $this->assertAst($expected, '<?php return;');
     }
 
     public function testBreak(): void
@@ -660,7 +668,7 @@ final class ParserTest extends TestCase
         Program
           Break
         TXT;
-        $this->assertSame($expected, $this->parse('<?php break;'));
+        $this->assertAst($expected, '<?php break;');
     }
 
     public function testContinueWithLevel(): void
@@ -669,7 +677,7 @@ final class ParserTest extends TestCase
         Program
           Continue 2
         TXT;
-        $this->assertSame($expected, $this->parse('<?php continue 2;'));
+        $this->assertAst($expected, '<?php continue 2;');
     }
 
     // =========================================================================
@@ -706,7 +714,7 @@ final class ParserTest extends TestCase
           Echo
             Literal(string, 'ok')
         TXT;
-        $this->assertSame($expected, $this->parse('<?php echo "ok";'));
+        $this->assertAst($expected, '<?php echo "ok";');
     }
 
     public function testCloseTagAccepted(): void
@@ -716,6 +724,6 @@ final class ParserTest extends TestCase
           Echo
             Literal(string, 'ok')
         TXT;
-        $this->assertSame($expected, $this->parse('<?php echo "ok"; ?>'));
+        $this->assertAst($expected, '<?php echo "ok"; ?>');
     }
 }

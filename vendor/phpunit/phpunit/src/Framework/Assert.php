@@ -1748,8 +1748,16 @@ abstract class Assert
      *
      * @throws ExpectationFailedException
      *
-     * @phpstan-assert =ExpectedType $actual
+     * @phpstan-assert =ExpectedType $actual assertSame
      */
+    private function assertAst(string $expected, string $source): void
+{
+    // Normalise les deux côtés en \n
+    $expected = str_replace(["\r\n", "\r"], "\n", $expected);
+    $actual = str_replace(["\r\n", "\r"], "\n", $this->parse($source));
+    $this->assertSame($expected, $actual);
+}
+
     final public static function assertSame(mixed $expected, mixed $actual, string $message = ''): void
     {
         self::assertThat(

@@ -23,11 +23,19 @@ final class Parser2bTest extends TestCase
         $this->printer = new AstPrinter();
     }
 
-    private function parse(string $source): string
+        private function parse(string $source): string
     {
         $tokens = $this->lexer->tokenize($source);
         $ast = $this->parser->parse($tokens);
-        return $this->printer->print($ast);
+        return str_replace(["\r\n", "\r"], "\n", $this->printer->print($ast));
+    }
+
+    private function assertAst(string $expected, string $source): void
+    {
+        $this->assertSame(
+            str_replace(["\r\n", "\r"], "\n", $expected),
+            $this->parse($source),
+        );
     }
 
     private function assertParseError(string $source, string $messagePart): void
@@ -51,7 +59,7 @@ final class Parser2bTest extends TestCase
           VarDecl(int)
             Declarator($a)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php int $a;'));
+        $this->assertAst($expected, '<?php int $a;');
     }
 
     public function testTypedVarDeclWithInit(): void
@@ -62,7 +70,7 @@ final class Parser2bTest extends TestCase
             Declarator($a)
               Literal(int, 5)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php int $a = 5;'));
+        $this->assertAst($expected, '<?php int $a = 5;');
     }
 
     public function testTypedVarDeclMultiple(): void
@@ -75,7 +83,7 @@ final class Parser2bTest extends TestCase
               Literal(int, 2)
             Declarator($c)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php int $a, $b = 2, $c;'));
+        $this->assertAst($expected, '<?php int $a, $b = 2, $c;');
     }
 
     public function testArrayType(): void
@@ -85,7 +93,7 @@ final class Parser2bTest extends TestCase
           VarDecl(string[])
             Declarator($keys)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php string[] $keys;'));
+        $this->assertAst($expected, '<?php string[] $keys;');
     }
 
     public function testNestedArrayType(): void
@@ -95,7 +103,7 @@ final class Parser2bTest extends TestCase
           VarDecl(int[][])
             Declarator($m)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php int[][] $m;'));
+        $this->assertAst($expected, '<?php int[][] $m;');
     }
 
     public function testNullableType(): void
@@ -105,7 +113,7 @@ final class Parser2bTest extends TestCase
           VarDecl(?string)
             Declarator($s)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php ?string $s;'));
+        $this->assertAst($expected, '<?php ?string $s;');
     }
 
     public function testUnionType(): void
@@ -115,7 +123,7 @@ final class Parser2bTest extends TestCase
           VarDecl(int|string)
             Declarator($x)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php int|string $x;'));
+        $this->assertAst($expected, '<?php int|string $x;');
     }
 
     public function testClassType(): void
@@ -125,7 +133,7 @@ final class Parser2bTest extends TestCase
           VarDecl(Foo)
             Declarator($f)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php Foo $f;'));
+        $this->assertAst($expected, '<?php Foo $f;');
     }
 
     public function testQualifiedClassType(): void
@@ -135,7 +143,7 @@ final class Parser2bTest extends TestCase
           VarDecl(\Foo\Bar)
             Declarator($f)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php \\Foo\\Bar $f;'));
+        $this->assertAst($expected, '<?php \\Foo\\Bar $f;');
     }
 
     public function testDeclarationWithExpression(): void
@@ -148,7 +156,7 @@ final class Parser2bTest extends TestCase
                 Literal(int, 1)
                 Literal(int, 2)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php int $a = 1 + 2;'));
+        $this->assertAst($expected, '<?php int $a = 1 + 2;');
     }
 
     // =========================================================================
@@ -164,7 +172,7 @@ final class Parser2bTest extends TestCase
             Body
               Block
         TXT;
-        $this->assertSame($expected, $this->parse('<?php function f(): void {}'));
+        $this->assertAst($expected, '<?php function f(): void {}');
     }
 
     public function testFunctionWithParams(): void
@@ -180,7 +188,7 @@ final class Parser2bTest extends TestCase
                 Return
                   Var($x)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php function f(int $x, string $y): int { return $x; }'));
+        $this->assertAst($expected, '<?php function f(int $x, string $y): int { return $x; }');
     }
 
     public function testFunctionWithDefault(): void
@@ -194,7 +202,7 @@ final class Parser2bTest extends TestCase
             Body
               Block
         TXT;
-        $this->assertSame($expected, $this->parse('<?php function f(int $x = 5): void {}'));
+        $this->assertAst($expected, '<?php function f(int $x = 5): void {}');
     }
 
     public function testFunctionWithVariadic(): void
@@ -207,7 +215,7 @@ final class Parser2bTest extends TestCase
             Body
               Block
         TXT;
-        $this->assertSame($expected, $this->parse('<?php function f(int ...$nums): void {}'));
+        $this->assertAst($expected, '<?php function f(int ...$nums): void {}');
     }
 
     public function testFunctionWithByRef(): void
@@ -220,7 +228,7 @@ final class Parser2bTest extends TestCase
             Body
               Block
         TXT;
-        $this->assertSame($expected, $this->parse('<?php function f(int &$x): void {}'));
+        $this->assertAst($expected, '<?php function f(int &$x): void {}');
     }
 
     public function testFunctionMissingParamType(): void
@@ -243,7 +251,7 @@ final class Parser2bTest extends TestCase
         Program
           ClassDecl(Foo)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php class Foo {}'));
+        $this->assertAst($expected, '<?php class Foo {}');
     }
 
     public function testClassExtends(): void
@@ -252,7 +260,7 @@ final class Parser2bTest extends TestCase
         Program
           ClassDecl(Foo extends Bar)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php class Foo extends Bar {}'));
+        $this->assertAst($expected, '<?php class Foo extends Bar {}');
     }
 
     public function testClassImplements(): void
@@ -261,7 +269,7 @@ final class Parser2bTest extends TestCase
         Program
           ClassDecl(Foo implements I1, I2)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php class Foo implements I1, I2 {}'));
+        $this->assertAst($expected, '<?php class Foo implements I1, I2 {}');
     }
 
     public function testInterface(): void
@@ -270,7 +278,7 @@ final class Parser2bTest extends TestCase
         Program
           InterfaceDecl(I)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php interface I {}'));
+        $this->assertAst($expected, '<?php interface I {}');
     }
 
     public function testClassWithProperty(): void
@@ -281,7 +289,7 @@ final class Parser2bTest extends TestCase
             PropertyDecl(public int)
               Declarator($x)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php class Foo { public int $x; }'));
+        $this->assertAst($expected, '<?php class Foo { public int $x; }');
     }
 
     public function testClassWithMethod(): void
@@ -297,7 +305,7 @@ final class Parser2bTest extends TestCase
                     PropertyAccess(->x)
                       This
         TXT;
-        $this->assertSame($expected, $this->parse('<?php class Foo { public function getX(): int { return $this->x; } }'));
+        $this->assertAst($expected, '<?php class Foo { public function getX(): int { return $this->x; } }');
     }
 
     public function testClassWithAbstractMethod(): void
@@ -310,7 +318,7 @@ final class Parser2bTest extends TestCase
               Body
                 <abstract>
         TXT;
-        $this->assertSame($expected, $this->parse('<?php class Foo { public abstract function m(): void; }'));
+        $this->assertAst($expected, '<?php class Foo { public abstract function m(): void; }');
     }
 
     public function testInterfaceWithMethodSignature(): void
@@ -324,7 +332,7 @@ final class Parser2bTest extends TestCase
               Body
                 <abstract>
         TXT;
-        $this->assertSame($expected, $this->parse('<?php interface I { public function m(int $x): int; }'));
+        $this->assertAst($expected, '<?php interface I { public function m(int $x): int; }');
     }
 
     // =========================================================================
@@ -346,7 +354,7 @@ final class Parser2bTest extends TestCase
                         This
                       Literal(int, 1)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php class Foo { public function f(): void { $this->x = 1; } }'));
+        $this->assertAst($expected, '<?php class Foo { public function f(): void { $this->x = 1; } }');
     }
 
     public function testThisReservedAsVariable(): void
@@ -371,7 +379,7 @@ final class Parser2bTest extends TestCase
             Instanceof(Foo)
               Var($x)
         TXT;
-        $this->assertSame($expected, $this->parse('<?php $x instanceof Foo;'));
+        $this->assertAst($expected, '<?php $x instanceof Foo;');
     }
 
     public function testInstanceofInCondition(): void
@@ -385,6 +393,6 @@ final class Parser2bTest extends TestCase
             Then
               Block
         TXT;
-        $this->assertSame($expected, $this->parse('<?php if ($x instanceof Foo) {}'));
+        $this->assertAst($expected, '<?php if ($x instanceof Foo) {}');
     }
 }

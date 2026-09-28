@@ -748,7 +748,8 @@ final class Parser
         $save = $this->pos;
         try {
             $this->tryParseType(); // jetable
-            $ok = $this->check(TokenType::Variable);
+                $ok = $this->check(TokenType::Variable)
+                || $this->check(TokenType::KwThis);
         } catch (ParserError) {
             $ok = false;
         }
@@ -905,12 +906,12 @@ final class Parser
     /**
      * @return array{name: string, init: ?Expr, line: int, column: int}
      */
-    private function parseDeclarator(): array
+        private function parseDeclarator(): array
     {
-        $var = $this->expect(TokenType::Variable, "Nom de variable attendu dans la déclaration");
-        if ((string) $var->value === 'this') {
-            $this->errorAt($var, "'\$this' est réservé et ne peut pas être déclaré");
+        if ($this->check(TokenType::KwThis)) {
+            $this->error("'\$this' est réservé et ne peut pas être déclaré");
         }
+        $var = $this->expect(TokenType::Variable, "Nom de variable attendu dans la déclaration");
 
         $init = null;
         if ($this->check(TokenType::Assign)) {
@@ -969,10 +970,10 @@ final class Parser
             $this->advance();
         }
 
-        $var = $this->expect(TokenType::Variable, "Nom de paramètre attendu");
-        if ((string) $var->value === 'this') {
-            $this->errorAt($var, "'\$this' est réservé et ne peut pas être un paramètre");
+       if ($this->check(TokenType::KwThis)) {
+            $this->error("'\$this' est réservé et ne peut pas être un paramètre");
         }
+        $var = $this->expect(TokenType::Variable, "Nom de paramètre attendu");
 
         $default = null;
         if ($this->check(TokenType::Assign)) {
