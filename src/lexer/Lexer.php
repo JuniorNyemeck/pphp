@@ -636,6 +636,7 @@ final class Lexer
             'null' => TokenType::KwNull, 'false' => TokenType::KwFalse, 'true' => TokenType::KwTrue,
             'callable' => TokenType::KwCallable, 'iterable' => TokenType::KwIterable,
             'self' => TokenType::KwSelf, 'parent' => TokenType::KwParent, 'this' => TokenType::KwThis,
+            'echo' => TokenType::KwEcho
         ];
     }
 

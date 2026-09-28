@@ -45,6 +45,12 @@ use PPhp\Parser\Node\Stmt\VarDeclStmt;
 use PPhp\Parser\Node\Stmt\WhileStmt;
 use PPhp\Parser\Node\TypeNode;
 use PPhp\Parser\Node\Expr\ThisExpr;
+use PPhp\Parser\Node\Expr\ArrayLiteralExpr;    
+
+
+ 
+ 
+
 
 /**
  * Parser PPHP — étape 2a. 
@@ -111,12 +117,14 @@ final class Parser
 
         '+'  => ['left' => 20, 'right' => 21],
         '-'  => ['left' => 20, 'right' => 21],
+        '.'  => ['left' => 20, 'right' => 21],   
 
         '*'  => ['left' => 22, 'right' => 23],
         '/'  => ['left' => 22, 'right' => 23],
         '%'  => ['left' => 22, 'right' => 23],
 
-        '**' => ['left' => 24, 'right' => 24],  // associatif à droite
+        '**' => ['left' => 24, 'right' => 24],
+          // associatif à droite
     ];
 
     /**
@@ -315,27 +323,136 @@ final class Parser
         return $list;
     }
 
-    private function parseForeach(): ForeachStmt
-    {
-        $kw = $this->advance();
-        $this->expect(TokenType::LParen, "'(' attendu après 'foreach'");
-        $iterable = $this->parseExpression();
-        $this->expect(TokenType::KwAs, "'as' attendu dans 'foreach'");
+/*     private function parseForeach(): ForeachStmt
+{
+    $kw = $this->advance();
+    $this->expect(TokenType::LParen, "'(' attendu après 'foreach'");
+    $iterable = $this->parseExpression();
+    $this->expect(TokenType::KwAs, "'as' attendu dans 'foreach'");
 
-        $first = $this->parseExpression();
-        $key = null;
-        $value = $first;
+    // Premier élément : type + variable (clé ou valeur)
+    $first = $this->parseForeachBinding();
+    $key = null;
+    $value = $first;
 
-        if ($this->check(TokenType::DoubleArrow)) {
-            $this->advance();
-            $key = $first;
-            $value = $this->parseExpression();
-        }
-
-        $this->expect(TokenType::RParen, "')' attendu dans 'foreach'");
-        $body = $this->parseStatement();
-        return new ForeachStmt($kw->line, $kw->column, $iterable, $value, $key, $body);
+    if ($this->check(TokenType::DoubleArrow)) {
+        $this->advance();
+        $key = $first;
+        $value = $this->parseForeachBinding();
     }
+
+    $this->expect(TokenType::RParen, "')' attendu dans 'foreach'");
+    $body = $this->parseStatement();
+    return new ForeachStmt($kw->line, $kw->column, $iterable, $value, $key, $body);
+} */
+
+
+
+
+    private function parseForeach(): ForeachStmt
+{
+    $kw = $this->advance();
+    $this->expect(TokenType::LParen, "'(' attendu après 'foreach'");
+    $iterable = $this->parseExpression();
+    $this->expect(TokenType::KwAs, "'as' attendu dans 'foreach'");
+
+    // Premier binding : type + variable
+    [$type1, $var1] = $this->parseForeachBinding();
+
+    $key = null;
+    $keyType = null;
+    $value = $var1;
+    $valueType = $type1;
+
+    if ($this->check(TokenType::DoubleArrow)) {
+        $this->advance();
+        // Le premier binding était la clé
+        $key = $var1;
+        $keyType = $type1;
+
+        // Deuxième binding : la valeur
+        [$type2, $var2] = $this->parseForeachBinding();
+        $value = $var2;
+        $valueType = $type2;
+    }
+
+    $this->expect(TokenType::RParen, "')' attendu dans 'foreach'");
+    $body = $this->parseStatement();
+
+    return new ForeachStmt(
+        $kw->line,
+        $kw->column,
+        $iterable,
+        $value,
+        $key,
+        $body,
+        $valueType,
+        $keyType,
+    );
+}
+
+/**
+ * Parse un binding de foreach : TYPE $variable.
+ *
+ * @return array{TypeNode, Expr}  le type et l'expression de variable
+ */
+private function parseForeachBinding(): array
+{
+    if (!$this->canStartType($this->current())) {
+        $this->error("Type obligatoire dans 'foreach'");
+    }
+    $type = $this->parseType();
+    $var = $this->expect(TokenType::Variable, "Nom de variable attendu dans 'foreach'");
+    $expr = new VariableExpr($var->line, $var->column, (string) $var->value);
+    return [$type, $expr];
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Parse une liaison foreach : TYPE $var
+ */
+ 
+
+/* 
+$tab = ['hrt', 1, 'Msd', 4, true, 12, 'F', ...];
+
+$pairs = 0;
+ 
+
+ foreach($tab as int $number % 2 === 0){
+
+    $pairs++;
+ }
+ 
+
+*/
+
+
+
+
+
+
+
+
 
     private function parseExpressionStatement(): ExprStmt
     {
@@ -570,7 +687,11 @@ final class Parser
     private function parsePrimary(): Expr
     {
         $t = $this->current();
-
+ 
+        if ($t->type === TokenType::Identifier) { 
+            $this->advance();
+            return new VariableExpr($t->line, $t->column, (string) $t->value);
+        }
         if ($t->type === TokenType::KwThis) {
             $this->advance();
             return new ThisExpr($t->line, $t->column);
@@ -599,6 +720,9 @@ final class Parser
             $this->advance();
             return new LiteralExpr($t->line, $t->column, null, 'null');
         }
+            if ($t->type === TokenType::LBracket) {
+            return $this->parseArrayLiteral();
+        }
         if ($t->type === TokenType::LParen) {
             $this->advance();
             $expr = $this->parseExpression();
@@ -625,6 +749,38 @@ final class Parser
         }
         $this->expect(TokenType::RParen, "')' attendu");
         return $args;
+    }
+
+    private function parseArrayLiteral(): ArrayLiteralExpr
+{
+    $open = $this->expect(TokenType::LBracket, "'[' attendu");
+    $elements = [];
+    if (!$this->check(TokenType::RBracket)) {
+        $elements[] = $this->parseArrayElement();
+        while ($this->check(TokenType::Comma)) {
+            $this->advance();
+            if ($this->check(TokenType::RBracket)) {
+                break; // trailing comma
+            }
+            $elements[] = $this->parseArrayElement();
+        }
+    }
+    $this->expect(TokenType::RBracket, "']' attendu");
+    return new ArrayLiteralExpr($open->line, $open->column, $elements);
+}
+
+/**
+ * @return array{key: ?Expr, value: Expr}
+ */
+    private function parseArrayElement(): array
+    {
+        $first = $this->parseExpression();
+        if ($this->check(TokenType::DoubleArrow)) {
+            $this->advance();
+            $second = $this->parseExpression();
+            return ['key' => $first, 'value' => $second];
+        }
+        return ['key' => null, 'value' => $first];
     }
 
     private function parseNew(): NewExpr

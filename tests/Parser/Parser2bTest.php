@@ -30,6 +30,23 @@ final class Parser2bTest extends TestCase
         return str_replace(["\r\n", "\r"], "\n", $this->printer->print($ast));
     }
 
+
+    public function testForeachSimple(): void
+{
+    $expected = <<<'TXT'
+    Program
+      Foreach
+        Iterable
+          Var($arr)
+        Value (int)
+          Var($v)
+        Body
+          Block
+    TXT;
+    $this->assertAst($expected, '<?php foreach ($arr as int $v) {}');
+}
+
+
     private function assertAst(string $expected, string $source): void
     {
         $this->assertSame(
