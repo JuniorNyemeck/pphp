@@ -24,6 +24,9 @@ final class Compiler
             $sourceMap->add($i + 1, $i + 1);
         }
 
+        $hierarchy = new ClassHierarchy($globals);
+        $hierarchy->validate($sourceFile);
+
         return [
             'code' => $source,
             'sourceMap' => $sourceMap,

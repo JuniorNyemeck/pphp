@@ -15,15 +15,16 @@ use PPhp\Semantic\Type\Type;
 use PPhp\Semantic\Type\UnionType;
 use PPhp\Semantic\Type\VoidType;
 
-/**
- * Vérifie la relation de sous-typage T1 <: T2.
- *
- * Version 3a : réduite aux règles de base.
- * L'héritage de classes sera ajouté à l'étape 4.
- */
 final class SubtypeChecker
 {
-    public function __construct(private readonly GlobalScope $globals) {}
+    private readonly ClassHierarchy $hierarchy;
+
+    public function __construct(
+        private readonly GlobalScope $globals,
+        ?ClassHierarchy $hierarchy = null,
+    ) {
+        $this->hierarchy = $hierarchy ?? new ClassHierarchy($globals);
+    }
 
     public function isSubtypeOf(Type $sub, Type $sup): bool
     {
@@ -32,17 +33,17 @@ final class SubtypeChecker
             return true;
         }
 
-        // never <: T (pour tout T)
+        // never <: T
         if ($sub instanceof NeverType) {
             return true;
         }
 
-        // T <: mixed (pour tout T)
+        // T <: mixed
         if ($sup instanceof MixedType) {
             return true;
         }
 
-        // void n'est sous-type de rien sauf void (déjà couvert par réflexivité)
+        // void
         if ($sup instanceof VoidType && !$sub instanceof VoidType) {
             return false;
         }
@@ -62,29 +63,29 @@ final class SubtypeChecker
             return false;
         }
 
-        // int <: float (règle spéciale)
+        // int <: float
         if ($sub instanceof ScalarType && $sup instanceof ScalarType) {
             if ($sub->name === ScalarType::INT && $sup->name === ScalarType::FLOAT) {
                 return true;
             }
         }
 
-        // ?T <: ?U si T <: U
+        // ?T <: ?U
         if ($sub instanceof NullableType && $sup instanceof NullableType) {
             return $this->isSubtypeOf($sub->inner, $sup->inner);
         }
 
-        // T <: ?U si T <: U
+        // T <: ?U
         if ($sup instanceof NullableType) {
             return $this->isSubtypeOf($sub, $sup->inner);
         }
 
-        // T[] <: U[] si T <: U
+        // T[] <: U[]
         if ($sub instanceof ArrayType && $sup instanceof ArrayType) {
             return $this->isSubtypeOf($sub->element, $sup->element);
         }
 
-        // T <: A|B si T <: A ou T <: B
+        // T <: A|B
         if ($sup instanceof UnionType) {
             foreach ($sup->members as $m) {
                 if ($this->isSubtypeOf($sub, $m)) {
@@ -94,7 +95,7 @@ final class SubtypeChecker
             return false;
         }
 
-        // A|B <: T si A <: T ET B <: T
+        // A|B <: T
         if ($sub instanceof UnionType) {
             foreach ($sub->members as $m) {
                 if (!$this->isSubtypeOf($m, $sup)) {
@@ -104,7 +105,7 @@ final class SubtypeChecker
             return true;
         }
 
-        // Classes : à enrichir à l'étape 4 (héritage, interfaces)
+        // Classes et interfaces
         if ($sub instanceof ClassType && $sup instanceof ClassType) {
             return $this->isClassSubtypeOf($sub->name, $sup->name);
         }
@@ -117,20 +118,19 @@ final class SubtypeChecker
         if ($sub === $sup) {
             return true;
         }
-        // 'object' est super-type de toute classe
+
+        // Cas spéciaux des types builtin
         if ($sup === 'object') {
+            // Toute classe connue est <: object
             return $this->globals->classExists($sub);
         }
-        // Héritage : à implémenter à l'étape 4
-        // Pour 3a, on regarde juste le parent direct.
-        $class = $this->globals->getClass($sub);
-        if ($class === null) {
+
+        // Vérifier si l'un des deux n'est pas une classe connue
+        if (!$this->globals->classExists($sub)) {
             return false;
         }
-        if ($class->parent === $sup) {
-            return true;
-        }
-        // Interfaces : idem étape 4
-        return false;
+
+        // Relation d'héritage complète
+        return $this->hierarchy->isSubclassOf($sub, $sup);
     }
 }

@@ -11,12 +11,13 @@ final class PropertyInfo
     /**
      * @param string[] $modifiers
      */
-    public function __construct(
+     public function __construct(
         public readonly string $name,
         public readonly Type $type,
         public readonly array $modifiers,
         public readonly int $line,
         public readonly int $column,
+        public readonly string $declaringClass,  // <-- AJOUT
     ) {}
 
     public function isPublic(): bool
@@ -28,4 +29,5 @@ final class PropertyInfo
     {
         return in_array('static', $this->modifiers, true);
     }
+
 }

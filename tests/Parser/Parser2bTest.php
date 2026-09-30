@@ -47,6 +47,45 @@ final class Parser2bTest extends TestCase
 }
 
 
+   public function testForeachWithType(): void
+{
+    $expected = <<<'TXT'
+    Program
+      Foreach
+        Iterable
+          Var($arr)
+        Value (int)
+          Var($v)
+        Body
+          Block
+    TXT;
+    $this->assertAst($expected, '<?php foreach ($arr as int $v) {}');
+}
+
+public function testForeachWithKeyAndType(): void
+{
+    $expected = <<<'TXT'
+    Program
+      Foreach
+        Iterable
+          Var($arr)
+        Key (int)
+          Var($k)
+        Value (string)
+          Var($v)
+        Body
+          Block
+    TXT;
+    $this->assertAst($expected, '<?php foreach ($arr as int $k => string $v) {}');
+}
+
+public function testForeachMissingTypeIsError(): void
+{
+    $this->assertParseError('<?php foreach ($arr as $v) {}', 'Type obligatoire');
+}
+
+
+
     private function assertAst(string $expected, string $source): void
     {
         $this->assertSame(
@@ -254,9 +293,12 @@ final class Parser2bTest extends TestCase
     }
 
     public function testFunctionMissingReturnType(): void
-    {
-        $this->assertParseError('<?php function f(int $x) {}', "':' attendu avant le type de retour");
-    }
+{
+    $this->assertParseError(
+        '<?php function f(int $x) {}',
+        'Type de retour obligatoire pour la fonction'
+    );
+}
 
     // =========================================================================
     //  Classes

@@ -15,14 +15,15 @@ final class MethodInfo
      * @param string[] $modifiers
      * @param Param[]  $params
      */
-    public function __construct(
+       public function __construct(
         public readonly string $name,
         public readonly array $modifiers,
         public readonly array $params,
-        public readonly Type $returnType,
+        public readonly ?Type $returnType,
         public readonly ?MethodDeclStmt $ast,
         public readonly int $line,
         public readonly int $column,
+        public readonly string $declaringClass,  // <-- AJOUT
     ) {}
 
     public function isPublic(): bool

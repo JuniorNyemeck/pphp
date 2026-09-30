@@ -21,32 +21,58 @@ final class Collector
 {
     private GlobalScope $globals;
 
+    private ?SignatureChecker $signatureChecker = null;
+
     public function __construct()
     {
         $this->globals = new GlobalScope();
     }
 
     public function collect(ProgramNode $program, string $file): GlobalScope
-    {
-        // Première boucle : collecter les noms (pour permettre les références croisées)
-        foreach ($program->statements as $stmt) {
-            if ($stmt instanceof ClassDeclStmt) {
-                $this->collectClassHeader($stmt, $file);
-            } elseif ($stmt instanceof FunctionDeclStmt) {
-                $this->collectFunctionHeader($stmt, $file);
-            }
+{
+    // Première boucle : collecter les noms (pour permettre les références croisées)
+    foreach ($program->statements as $stmt) {
+        if ($stmt instanceof ClassDeclStmt) {
+            $this->collectClassHeader($stmt, $file);
+        } elseif ($stmt instanceof FunctionDeclStmt) {
+            $this->collectFunctionHeader($stmt, $file);
         }
-
-        // Deuxième boucle : collecter les membres de classes
-        foreach ($program->statements as $stmt) {
-            if ($stmt instanceof ClassDeclStmt) {
-                $this->collectClassMembers($stmt, $file);
-            }
-        }
-
-        return $this->globals;
     }
 
+    // Deuxième boucle : collecter les membres de classes
+    foreach ($program->statements as $stmt) {
+        if ($stmt instanceof ClassDeclStmt) {
+            $this->collectClassMembers($stmt, $file);
+        }
+    }
+
+    // Valider les surcharges (unicité + disjonction)
+    $hierarchy = new ClassHierarchy($this->globals);
+    $subtypes = new SubtypeChecker($this->globals, $hierarchy);
+    $this->signatureChecker = new SignatureChecker($this->globals, $hierarchy, $subtypes);
+
+    // Fonctions top-level
+    foreach ($this->globals->functions as $name => $overloads) {
+        if (count($overloads) > 1) {
+            $this->signatureChecker->checkOverloads($overloads, $name, $file);
+        }
+    }
+
+    // Méthodes de classe
+    foreach ($this->globals->classes as $class) {
+        foreach ($class->methods as $name => $overloads) {
+            if (count($overloads) > 1) {
+                $this->signatureChecker->checkOverloads(
+                    $overloads,
+                    "{$class->name}::{$name}",
+                    $file,
+                );
+            }
+        }
+    }
+
+    return $this->globals;
+}
     private function collectClassHeader(ClassDeclStmt $stmt, string $file): void
     {
         // Vérifier que le parent existe (s'il est déclaré)
@@ -98,6 +124,7 @@ final class Collector
                     $file,
                     $d['line'],
                     $d['column'],
+                    
                 );
             }
             $class->properties[$name] = new PropertyInfo(
@@ -106,38 +133,29 @@ final class Collector
                 modifiers: $stmt->modifiers,
                 line: $d['line'],
                 column: $d['column'],
+                declaringClass: $class->name, 
             );
         }
     }
 
-    private function collectMethod(ClassInfo $class, MethodDeclStmt $stmt, string $file): void
+        private function collectMethod(ClassInfo $class, MethodDeclStmt $stmt, string $file): void
     {
         $returnType = $stmt->returnType !== null
-            ? TypeFactory::fromNode($stmt->returnType, $class->name, $class->parent)
-            : null;
+    ? TypeFactory::fromNode($stmt->returnType, $class->name, $class->parent)
+    : null;
 
-        if ($returnType === null) {
-            throw new TypeError(
-                "Type de retour obligatoire pour la méthode '{$stmt->name}'",
-                $file,
-                $stmt->line(),
-                $stmt->column(),
-            );
-        }
+if ($returnType === null
+    && !in_array($stmt->name, ['__construct', '__destruct'], true)
+) {
+    throw new TypeError(
+        "Type de retour obligatoire pour la méthode '{$stmt->name}'",
+        $file,
+        $stmt->line(),
+        $stmt->column(),
+    );
+}
 
-        if (isset($class->methods[$stmt->name])) {
-            $existing = $class->methods[$stmt->name];
-            throw new TypeError(
-                "Redéclaration de la méthode '{$stmt->name}' dans la classe '{$class->name}' "
-                . "(déjà déclarée à la ligne {$existing->line}). "
-                . "La surcharge n'est pas encore supportée.",
-                $file,
-                $stmt->line(),
-                $stmt->column(),
-            );
-        }
-
-        $class->methods[$stmt->name] = new MethodInfo(
+        $info = new MethodInfo(
             name: $stmt->name,
             modifiers: $stmt->modifiers,
             params: $stmt->params,
@@ -145,32 +163,37 @@ final class Collector
             ast: $stmt,
             line: $stmt->line(),
             column: $stmt->column(),
+            declaringClass: $class->name,
+        );
+
+        // Ajouter aux surcharges
+        $class->methods[$stmt->name][] = $info;
+    }
+
+       private function collectFunctionHeader(FunctionDeclStmt $stmt, string $file): void
+{
+    $returnType = $stmt->returnType !== null
+        ? TypeFactory::fromNode($stmt->returnType)
+        : null;
+
+    if ($returnType === null) {
+        throw new TypeError(
+            "Type de retour obligatoire pour la fonction '{$stmt->name}'",
+            $file,
+            $stmt->line(),
+            $stmt->column(),
         );
     }
 
-    private function collectFunctionHeader(FunctionDeclStmt $stmt, string $file): void
-    {
-        $returnType = $stmt->returnType !== null
-            ? TypeFactory::fromNode($stmt->returnType)
-            : null;
+    $info = new FunctionInfo(
+        name: $stmt->name,
+        params: $stmt->params,
+        returnType: $returnType,
+        line: $stmt->line(),
+        column: $stmt->column(),
+        ast: $stmt,
+    );
 
-        if ($returnType === null) {
-            throw new TypeError(
-                "Type de retour obligatoire pour la fonction '{$stmt->name}'",
-                $file,
-                $stmt->line(),
-                $stmt->column(),
-            );
-        }
-
-        $info = new FunctionInfo(
-            name: $stmt->name,
-            params: $stmt->params,
-            returnType: $returnType,
-            line: $stmt->line(),
-            column: $stmt->column(),
-        );
-
-        $this->globals->defineFunction($info);
-    }
+    $this->globals->defineFunction($info);
+}
 }

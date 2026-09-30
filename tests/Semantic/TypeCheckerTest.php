@@ -252,12 +252,12 @@ final class TypeCheckerTest extends TestCase
     // =========================================================================
 
     public function testFunctionParamTypeMismatch(): void
-    {
-        $this->assertTypeError(
-            '<?php function f(int $x): int { return $x; } f("hello");',
-            'Argument 1'
-        );
-    }
+{
+    $this->assertTypeError(
+        '<?php function f(int $x): int { return $x; } f("hello");',
+        'Aucune surcharge'
+    );
+}
 
     public function testFunctionArgCountMismatch(): void
     {
@@ -389,7 +389,7 @@ final class TypeCheckerTest extends TestCase
     //  foreach
     // =========================================================================
 
-  public function testForeachOk(): void
+  /* public function testForeachOk(): void
 {
     $this->check('<?php
         int[] $arr = [];
@@ -412,5 +412,154 @@ final class TypeCheckerTest extends TestCase
             '<?php int $x = 5; foreach ($x as int $v) { }',
             "L'itéré de 'foreach' doit être un tableau"
         );
-    }
+    } */
+
+
+
+        public function testForeachOk(): void
+{
+    $this->check('<?php
+        int[] $arr = [];
+        foreach ($arr as int $v) { echo $v; }
+    ');
+    $this->assertTrue(true);
+}
+
+public function testForeachWrongValueType(): void
+{
+    $this->assertTypeError(
+        '<?php int[] $arr = []; foreach ($arr as string $v) { }',
+        "Le type de la valeur de 'foreach'"
+    );
+}
+
+public function testForeachOnNonArray(): void
+{
+    $this->assertTypeError(
+        '<?php int $x = 5; foreach ($x as int $v) { }',
+        "L'itéré de 'foreach' doit être un tableau"
+    );
+}
+
+public function testForeachMixedArrayRejected(): void
+{
+    // Un tableau mixed[] ne peut pas être itéré avec un type précis
+    $this->assertTypeError(
+        '<?php array $arr = []; foreach ($arr as int $v) { }',
+        "Impossible de garantir"
+    );
+}
+
+public function testForeachWithKey(): void
+{
+    $this->check('<?php
+        string[] $arr = [];
+        foreach ($arr as int $k => string $v) { echo $k; echo $v; }
+    ');
+    $this->assertTrue(true);
+}
+
+public function testForeachInvalidKeyType(): void
+{
+    $this->assertTypeError(
+        '<?php string[] $arr = []; foreach ($arr as bool $k => string $v) { }',
+        "clé de 'foreach' doit être 'int' ou 'string'"
+    );
+}
+
+public function testForeachVariableScopeIsLimited(): void
+{
+    // $v n'existe pas après le foreach
+    $this->assertTypeError(
+        '<?php int[] $arr = []; foreach ($arr as int $v) { } echo $v;',
+        "Variable '\$v' non déclarée"
+    );
+}
+
+public function testForeachValueSubtypeAllowed(): void
+{
+    // int[] itéré avec float : int <: float, OK
+    $this->check('<?php
+        int[] $arr = [];
+        foreach ($arr as float $v) { echo $v; }
+    ');
+    $this->assertTrue(true);
+}
+
+
+public function testAccessInheritedProperty(): void
+{
+    $this->check('<?php
+        class Animal { public string $name; }
+        class Dog extends Animal {}
+        Dog $d = new Dog();
+        string $n = $d->name;
+    ');
+    $this->assertTrue(true);
+}
+
+public function testAccessInheritedMethod(): void
+{
+    $this->check('<?php
+        class Animal { public function speak(): string { return "..."; } }
+        class Dog extends Animal {}
+        Dog $d = new Dog();
+        string $s = $d->speak();
+    ');
+    $this->assertTrue(true);
+}
+
+public function testProtectedAccessibleInSubclass(): void
+{
+    $this->check('<?php
+        class Animal { protected string $name; }
+        class Dog extends Animal {
+            public function getName(): string { return $this->name; }
+        }
+    ');
+    $this->assertTrue(true);
+}
+
+public function testProtectedNotAccessibleFromOutside(): void
+{
+    $this->assertTypeError('<?php
+        class Animal { protected string $name; }
+        Animal $a = new Animal();
+        string $n = $a->name;
+    ', 'Accès interdit');
+}
+
+public function testPrivateNotAccessibleInSubclass(): void
+{
+    $this->assertTypeError('<?php
+        class Animal { private string $name; }
+        class Dog extends Animal {
+            public function getName(): string { return $this->name; }
+        }
+    ', 'Accès interdit');
+}
+
+public function testSubtypeArgAccepted(): void
+{
+    // Dog <: Animal, donc passer un Dog où Animal est attendu fonctionne
+    $this->check('<?php
+        class Animal {}
+        class Dog extends Animal {}
+        function f(Animal $a): void {}
+        Dog $d = new Dog();
+        f($d);
+    ');
+    $this->assertTrue(true);
+}
+
+public function testSupertypeArgRejected(): void
+{
+    $this->assertTypeError('<?php
+        class Animal {}
+        class Dog extends Animal {}
+        function f(Dog $d): void {}
+        Animal $a = new Animal();
+        f($a);
+    ', 'Aucune surcharge');
+}
 }

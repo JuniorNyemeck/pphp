@@ -55,7 +55,7 @@ final class CollectorTest extends TestCase
     {
         $this->assertCollectError(
             '<?php function f(): void {} function f(): void {}',
-            "Redéclaration de la fonction 'f'"
+            "signature identique"
         );
     }
 
@@ -150,7 +150,7 @@ final class CollectorTest extends TestCase
         $g = $this->collect('<?php class Foo { public function getX(): int { return 1; } }');
         $info = $g->getClass('Foo');
         $this->assertArrayHasKey('getX', $info->methods);
-        $this->assertSame('int', (string) $info->methods['getX']->returnType);
+        $this->assertSame('int', (string) $info->methods['getX'][0]->returnType);
     }
 
     public function testDuplicateMethod(): void
@@ -160,7 +160,7 @@ final class CollectorTest extends TestCase
                 public function m(): void {}
                 public function m(): void {}
             }',
-            "Redéclaration de la méthode 'm'"
+            "signature identique"
         );
     }
 
@@ -168,7 +168,7 @@ final class CollectorTest extends TestCase
     {
         $g = $this->collect('<?php interface I { public function m(): int; }');
         $info = $g->getClass('I');
-        $this->assertTrue($info->methods['m']->isAbstract());
+        $this->assertTrue($info->methods['m'][0]->isAbstract());
     }
 
     // =========================================================================
@@ -179,15 +179,17 @@ final class CollectorTest extends TestCase
     {
         $g = $this->collect('<?php class Foo { public function copy(): self { return $this; } }');
         $info = $g->getClass('Foo');
-        $this->assertSame('Foo', (string) $info->methods['copy']->returnType);
+        $this->assertSame('Foo', (string) $info->methods['copy'][0]->returnType);
     }
 
     public function testParentResolvesToParentClass(): void
-    {
-        $g = $this->collect('<?php class Bar {} class Foo extends Bar {
-            public function p(): parent { return $this; }
-        }');
-        $info = $g->getClass('Foo');
-        $this->assertSame('Bar', (string) $info->methods['p']->returnType);
-    }
+{
+    $g = $this->collect('<?php class Bar {} class Foo extends Bar {
+        public function p(): parent { return $this; }
+    }');
+    $info = $g->getClass('Foo');
+    $this->assertSame('Bar', (string) $info->methods['p'][0]->returnType);
+}
+
+
 }

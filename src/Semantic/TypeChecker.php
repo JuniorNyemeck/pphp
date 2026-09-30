@@ -51,7 +51,7 @@ use PPhp\Semantic\Type\Type;
 use PPhp\Semantic\Type\TypeFactory;
 use PPhp\Semantic\Type\UnionType;
 use PPhp\Semantic\Type\VoidType;
-use PPhp\Parser\Node\Expr\ArrayLiteralExpr;    
+use PPhp\Parser\Node\Expr\ArrayLiteralExpr;  
 
  
  
@@ -62,14 +62,35 @@ use PPhp\Parser\Node\Expr\ArrayLiteralExpr;
  */
 final class TypeChecker
 {
+    private readonly GlobalScope $globals;
+    private readonly SubtypeChecker $subtypes;
+    private readonly OperatorTypeTable $operators;
+    private readonly ClassHierarchy $hierarchy;
+    private readonly MemberResolver $members;
+    private readonly NarrowingHelper $narrowing;
+    private readonly OverloadResolver $overloads;
+
     private string $file = '<input>';
 
     public function __construct(
-        private readonly GlobalScope $globals,
-        private readonly SubtypeChecker $subtypes = new SubtypeChecker(new GlobalScope()),
-        private readonly OperatorTypeTable $operators = new OperatorTypeTable(),
-    ) {}
-
+        GlobalScope $globals,
+        ?SubtypeChecker $subtypes = null,
+        ?OperatorTypeTable $operators = null,
+        ?ClassHierarchy $hierarchy = null,
+        ?MemberResolver $members = null,
+    ) {
+        $this->globals = $globals;
+        $this->hierarchy = $hierarchy ?? new ClassHierarchy($globals);
+        $this->subtypes = $subtypes ?? new SubtypeChecker($globals, $this->hierarchy);
+        $this->operators = $operators ?? new OperatorTypeTable();
+        $this->members = $members ?? new MemberResolver(
+    $globals,
+    $this->hierarchy,
+    $this->subtypes,
+);
+        $this->narrowing = new NarrowingHelper();
+        $this->overloads = new OverloadResolver($this->subtypes);
+    }
     public function check(ProgramNode $program, string $file): void
 {
     $this->file = $file;
@@ -102,33 +123,42 @@ final class TypeChecker
     //  Fonctions
     // =========================================================================
 
+    
     private function checkFunction(FunctionDeclStmt $stmt): void
-    {
-        $info = $this->globals->getFunction($stmt->name);
-        if ($info === null) {
-            return;
-        }
-
-        $scope = new Scope(null, 'function');
-
-        // Paramètres
-        foreach ($stmt->params as $p) {
-            $type = TypeFactory::fromNode($p->type);
-            $scope->define(new Symbol(
-                $p->name,
-                SymbolKind::Parameter,
-                $type,
-                $p->line(),
-                $p->column(),
-            ));
-        }
-
-        $ctx = (new Context($scope))->withFunction($info->returnType);
-
-        foreach ($stmt->body?->statements ?? [] as $s) {
-            $this->checkStatement($s, $ctx);
+{
+    // Trouver la surcharge correspondant à cet AST
+    $overloads = $this->globals->getFunctions($stmt->name);
+    $info = null;
+    foreach ($overloads as $o) {
+        if ($o->ast === $stmt) {
+            $info = $o;
+            break;
         }
     }
+    if ($info === null) {
+        return;
+    }
+
+    $scope = new Scope(null, 'function');
+
+    // Paramètres
+    foreach ($stmt->params as $p) {
+        $type = TypeFactory::fromNode($p->type);
+        $scope->define(new Symbol(
+            $p->name,
+            SymbolKind::Parameter,
+            $type,
+            $p->line(),
+            $p->column(),
+        ));
+    }
+
+    $ctx = (new Context($scope))->withFunction($info->returnType);
+
+    foreach ($stmt->body?->statements ?? [] as $s) {
+        $this->checkStatement($s, $ctx);
+    }
+}
 
     // =========================================================================
     //  Classes
@@ -149,38 +179,49 @@ final class TypeChecker
         }
     }
 
-    private function checkMethod(ClassInfo $class, MethodDeclStmt $stmt): void
-    {
-        $info = $class->methods[$stmt->name] ?? null;
-        if ($info === null) {
-            return;
-        }
+        private function checkMethod(ClassInfo $class, MethodDeclStmt $stmt): void
+        {
+            // On cherche la surcharge qui correspond à ce AST
+            $overloads = $class->methods[$stmt->name] ?? [];
+            $info = null;
+            foreach ($overloads as $o) {
+                if ($o->ast === $stmt) {
+                    $info = $o;
+                    break;
+                }
+            }
+            if ($info === null) {
+                $info = $overloads[0] ?? null;
+            }
+            if ($info === null) {
+                return;
+            }
 
-        // Méthode abstraite : pas de corps à vérifier
-        if ($stmt->body === null) {
-            return;
-        }
+                // Méthode abstraite : pas de corps à vérifier
+                if ($stmt->body === null) {
+                    return;
+                }
 
-        $scope = new Scope(null, 'function');
+                $scope = new Scope(null, 'function');
 
-        // Paramètres
-        foreach ($stmt->params as $p) {
-            $type = TypeFactory::fromNode($p->type, $class->name, $class->parent);
-            $scope->define(new Symbol(
-                $p->name,
-                SymbolKind::Parameter,
-                $type,
-                $p->line(),
-                $p->column(),
-            ));
-        }
+                // Paramètres
+                foreach ($stmt->params as $p) {
+                    $type = TypeFactory::fromNode($p->type, $class->name, $class->parent);
+                    $scope->define(new Symbol(
+                        $p->name,
+                        SymbolKind::Parameter,
+                        $type,
+                        $p->line(),
+                        $p->column(),
+                    ));
+                }
 
-        $ctx = (new Context($scope))->withMethod($class, $info);
+                $ctx = (new Context($scope))->withMethod($class, $info);
 
-        foreach ($stmt->body->statements as $s) {
-            $this->checkStatement($s, $ctx);
-        }
-    }
+                foreach ($stmt->body->statements as $s) {
+                    $this->checkStatement($s, $ctx);
+                }
+            }
 
     // =========================================================================
     //  Statements
@@ -332,25 +373,50 @@ final class TypeChecker
     }
 
     private function checkIf(IfStmt $stmt, Context $ctx): void
-    {
-        $this->requireBool($stmt->condition, $ctx, "condition de 'if'");
-        $this->checkStatement($stmt->then, $ctx);
+{
+    $this->requireBool($stmt->condition, $ctx, "condition de 'if'");
 
-        foreach ($stmt->elseifs as $eif) {
-            $this->requireBool($eif['cond'], $ctx, "condition de 'elseif'");
-            $this->checkStatement($eif['body'], $ctx);
-        }
+    // Narrowing positif pour le then
+    $thenScope = new Scope($ctx->scope, 'if-then');
+    $this->applyNarrowings($thenScope, $this->narrowing->positive($stmt->condition));
+    $this->checkStatement($stmt->then, $ctx->withScope($thenScope));
 
-        if ($stmt->else !== null) {
-            $this->checkStatement($stmt->else, $ctx);
-        }
+    // Accumule les narrowings négatifs pour les elseif
+    $negativeNarrowings = $this->narrowing->negative($stmt->condition);
+
+    foreach ($stmt->elseifs as $eif) {
+        $eifScope = new Scope($ctx->scope, 'elseif');
+        $this->applyNarrowings($eifScope, $negativeNarrowings);
+        $eifCtx = $ctx->withScope($eifScope);
+
+        $this->requireBool($eif['cond'], $eifCtx, "condition de 'elseif'");
+
+        $eifThenScope = new Scope($eifCtx->scope, 'elseif-then');
+        $this->applyNarrowings($eifThenScope, $this->narrowing->positive($eif['cond']));
+        $this->checkStatement($eif['body'], $eifCtx->withScope($eifThenScope));
+
+        $negativeNarrowings = $this->narrowing->merge(
+            $negativeNarrowings,
+            $this->narrowing->negative($eif['cond']),
+        );
     }
+
+    if ($stmt->else !== null) {
+        $elseScope = new Scope($ctx->scope, 'else');
+        $this->applyNarrowings($elseScope, $negativeNarrowings);
+        $this->checkStatement($stmt->else, $ctx->withScope($elseScope));
+    }
+}
 
     private function checkWhile(WhileStmt $stmt, Context $ctx): void
-    {
-        $this->requireBool($stmt->condition, $ctx, "condition de 'while'");
-        $this->checkStatement($stmt->body, $ctx->withLoop());
-    }
+{
+    $this->requireBool($stmt->condition, $ctx, "condition de 'while'");
+
+    $bodyScope = new Scope($ctx->scope, 'while-body');
+    $this->applyNarrowings($bodyScope, $this->narrowing->positive($stmt->condition));
+
+    $this->checkStatement($stmt->body, $ctx->withScope($bodyScope)->withLoop());
+}
 
     private function checkBreak(BreakStmt $stmt, Context $ctx): void
     {
@@ -377,26 +443,33 @@ final class TypeChecker
     }
 
     private function checkFor(ForStmt $stmt, Context $ctx): void
-    {
-        // Scope dédié à la boucle
-        $scope = new Scope($ctx->scope, 'for');
-        $innerCtx = $ctx->withScope($scope)->withLoop();
+{
+    $scope = new Scope($ctx->scope, 'for');
+    $innerCtx = $ctx->withScope($scope)->withLoop();
 
-        foreach ($stmt->init as $e) {
-            $this->checkExpr($e, $innerCtx);
-        }
-        foreach ($stmt->cond as $e) {
-            $this->requireBool($e, $innerCtx, "condition de 'for'");
-        }
-        foreach ($stmt->step as $e) {
-            $this->checkExpr($e, $innerCtx);
-        }
-        $this->checkStatement($stmt->body, $innerCtx);
+    foreach ($stmt->init as $e) {
+        $this->checkExpr($e, $innerCtx);
+    }
+    foreach ($stmt->cond as $e) {
+        $this->requireBool($e, $innerCtx, "condition de 'for'");
+    }
+    foreach ($stmt->step as $e) {
+        $this->checkExpr($e, $innerCtx);
     }
 
-    private function checkForeach(ForeachStmt $stmt, Context $ctx): void
+    // Narrowing dans le corps à partir des conditions
+    $bodyScope = new Scope($innerCtx->scope, 'for-body');
+    foreach ($stmt->cond as $cond) {
+        $this->applyNarrowings($bodyScope, $this->narrowing->positive($cond));
+    }
+
+    $this->checkStatement($stmt->body, $innerCtx->withScope($bodyScope));
+}
+
+private function checkForeach(ForeachStmt $stmt, Context $ctx): void
 {
     $iterableType = $this->checkExpr($stmt->iterable, $ctx);
+
     if (!$iterableType instanceof ArrayType) {
         throw new TypeError(
             "L'itéré de 'foreach' doit être un tableau, reçu '{$iterableType}'",
@@ -410,50 +483,102 @@ final class TypeChecker
     $scope = new Scope($ctx->scope, 'foreach');
     $innerCtx = $ctx->withScope($scope)->withLoop();
 
-    // Déclarer la variable de valeur avec le type de l'élément
-    if ($stmt->value instanceof VariableExpr && $stmt->valueType !== null) {
-        $declaredValueType = TypeFactory::fromNode(
-            $stmt->valueType,
-            $ctx->currentClass?->name,
-            $ctx->currentClass?->parent,
-        );
+    // Le type de l'élément du tableau
+    $elementType = $iterableType->element;
 
-        // Le type de l'élément doit être compatible avec le type déclaré
-        if (!$this->subtypes->isSubtypeOf($iterableType->element, $declaredValueType)) {
+    // --- Valeur ---
+    if (!$stmt->value instanceof VariableExpr) {
+        throw new TypeError(
+            "La valeur de 'foreach' doit être une variable",
+            $this->file,
+            $stmt->value->line(),
+            $stmt->value->column(),
+        );
+    }
+
+    if ($stmt->valueType === null) {
+        throw new TypeError(
+            "Type obligatoire pour la valeur de 'foreach'",
+            $this->file,
+            $stmt->value->line(),
+            $stmt->value->column(),
+        );
+    }
+
+    $declaredValueType = TypeFactory::fromNode(
+        $stmt->valueType,
+        $ctx->currentClass?->name,
+        $ctx->currentClass?->parent,
+    );
+    $this->validateType($declaredValueType, $stmt->value->line(), $stmt->value->column());
+
+    // Vérifier la compatibilité du type déclaré avec l'élément du tableau
+    if (!$this->subtypes->isSubtypeOf($elementType, $declaredValueType)) {
+        // Cas spécial : le tableau est mixed[] — on ne peut pas garantir
+        // que tous les éléments sont du type déclaré.
+        if ($elementType instanceof MixedType) {
+            // Pour l'instant, on refuse : runtime checking reporté à plus tard.
             throw new TypeError(
-                "Le type de la valeur de 'foreach' est '{$declaredValueType}', "
-                . "mais l'élément du tableau est '{$iterableType->element}'",
+                "Impossible de garantir que les éléments du tableau sont de type "
+                . "'{$declaredValueType}' (tableau de type mixed[])",
                 $this->file,
                 $stmt->value->line(),
                 $stmt->value->column(),
             );
         }
-
-        $scope->define(new Symbol(
-            $stmt->value->name,
-            SymbolKind::Variable,
-            $declaredValueType,
+        throw new TypeError(
+            "Le type de la valeur de 'foreach' est '{$declaredValueType}', "
+            . "mais l'élément du tableau est '{$elementType}'",
+            $this->file,
             $stmt->value->line(),
             $stmt->value->column(),
-        ));
+        );
     }
 
-    // Déclarer la variable de clé
-    if ($stmt->key !== null && $stmt->key instanceof VariableExpr && $stmt->keyType !== null) {
+    $scope->define(new Symbol(
+        $stmt->value->name,
+        SymbolKind::Variable,
+        $declaredValueType,
+        $stmt->value->line(),
+        $stmt->value->column(),
+    ));
+
+    // --- Clé (optionnelle) ---
+    if ($stmt->key !== null) {
+        if (!$stmt->key instanceof VariableExpr) {
+            throw new TypeError(
+                "La clé de 'foreach' doit être une variable",
+                $this->file,
+                $stmt->key->line(),
+                $stmt->key->column(),
+            );
+        }
+
+        if ($stmt->keyType === null) {
+            throw new TypeError(
+                "Type obligatoire pour la clé de 'foreach'",
+                $this->file,
+                $stmt->key->line(),
+                $stmt->key->column(),
+            );
+        }
+
         $declaredKeyType = TypeFactory::fromNode(
             $stmt->keyType,
             $ctx->currentClass?->name,
             $ctx->currentClass?->parent,
         );
+        $this->validateType($declaredKeyType, $stmt->key->line(), $stmt->key->column());
 
-        // Une clé de tableau doit être int ou string (ou mixed)
-        $keyOk = ($declaredKeyType instanceof ScalarType
-                    && in_array($declaredKeyType->name, [ScalarType::INT, ScalarType::STRING], true))
-            || $declaredKeyType instanceof MixedType;
+        // Une clé de tableau est toujours int|string en PHP.
+        $keyOk = $declaredKeyType instanceof MixedType
+            || ($declaredKeyType instanceof ScalarType
+                && in_array($declaredKeyType->name, [ScalarType::INT, ScalarType::STRING], true));
 
         if (!$keyOk) {
             throw new TypeError(
-                "Le type de la clé de 'foreach' doit être 'int' ou 'string', reçu '{$declaredKeyType}'",
+                "Le type de la clé de 'foreach' doit être 'int' ou 'string', "
+                . "reçu '{$declaredKeyType}'",
                 $this->file,
                 $stmt->key->line(),
                 $stmt->key->column(),
@@ -605,39 +730,91 @@ final class TypeChecker
         return new ClassType($ctx->currentClass->name);
     }
 
-    private function checkBinary(BinaryExpr $expr, Context $ctx): Type
-    {
+ private function checkBinary(BinaryExpr $expr, Context $ctx): Type
+{
+    // Cas spéciaux : && et || → narrow le RHS
+    if ($expr->op === '&&') {
         $left = $this->checkExpr($expr->left, $ctx);
-        $right = $this->checkExpr($expr->right, $ctx);
-
-        // Cas spéciaux : === et !== avec vérification de compatibilité
-        if ($expr->op === '===' || $expr->op === '!==') {
-            if (!$this->subtypes->isSubtypeOf($left, $right)
-                && !$this->subtypes->isSubtypeOf($right, $left)
-            ) {
-                throw new TypeError(
-                    "Comparaison stricte entre types incompatibles : "
-                    . "'{$left}' {$expr->op} '{$right}'",
-                    $this->file,
-                    $expr->line(),
-                    $expr->column(),
-                );
-            }
-            return ScalarType::bool();
+        if (!$left instanceof ScalarType || $left->name !== ScalarType::BOOL) {
+            throw new TypeError(
+                "Opérande gauche de '&&' doit être 'bool', reçu '{$left}'",
+                $this->file,
+                $expr->left->line(),
+                $expr->left->column(),
+            );
         }
 
-        $resultType = $this->operators->binaryResultType($expr->op, $left, $right);
-        if ($resultType === null) {
+        $rightScope = new Scope($ctx->scope, 'and-rhs');
+        $this->applyNarrowings($rightScope, $this->narrowing->positive($expr->left));
+        $right = $this->checkExpr($expr->right, $ctx->withScope($rightScope));
+
+        if (!$right instanceof ScalarType || $right->name !== ScalarType::BOOL) {
             throw new TypeError(
-                "Opération invalide : '{$left}' {$expr->op} '{$right}'",
+                "Opérande droite de '&&' doit être 'bool', reçu '{$right}'",
+                $this->file,
+                $expr->right->line(),
+                $expr->right->column(),
+            );
+        }
+        return ScalarType::bool();
+    }
+
+    if ($expr->op === '||') {
+        $left = $this->checkExpr($expr->left, $ctx);
+        if (!$left instanceof ScalarType || $left->name !== ScalarType::BOOL) {
+            throw new TypeError(
+                "Opérande gauche de '||' doit être 'bool', reçu '{$left}'",
+                $this->file,
+                $expr->left->line(),
+                $expr->left->column(),
+            );
+        }
+
+        $rightScope = new Scope($ctx->scope, 'or-rhs');
+        $this->applyNarrowings($rightScope, $this->narrowing->negative($expr->left));
+        $right = $this->checkExpr($expr->right, $ctx->withScope($rightScope));
+
+        if (!$right instanceof ScalarType || $right->name !== ScalarType::BOOL) {
+            throw new TypeError(
+                "Opérande droite de '||' doit être 'bool', reçu '{$right}'",
+                $this->file,
+                $expr->right->line(),
+                $expr->right->column(),
+            );
+        }
+        return ScalarType::bool();
+    }
+
+    // Reste inchangé (===, !==, opérateurs arithmétiques, etc.)
+    $left = $this->checkExpr($expr->left, $ctx);
+    $right = $this->checkExpr($expr->right, $ctx);
+
+    if ($expr->op === '===' || $expr->op === '!==') {
+        if (!$this->subtypes->isSubtypeOf($left, $right)
+            && !$this->subtypes->isSubtypeOf($right, $left)
+        ) {
+            throw new TypeError(
+                "Comparaison stricte entre types incompatibles : "
+                . "'{$left}' {$expr->op} '{$right}'",
                 $this->file,
                 $expr->line(),
                 $expr->column(),
             );
         }
-        return $resultType;
+        return ScalarType::bool();
     }
 
+    $resultType = $this->operators->binaryResultType($expr->op, $left, $right);
+    if ($resultType === null) {
+        throw new TypeError(
+            "Opération invalide : '{$left}' {$expr->op} '{$right}'",
+            $this->file,
+            $expr->line(),
+            $expr->column(),
+        );
+    }
+    return $resultType;
+}
     private function checkUnary(UnaryExpr $expr, Context $ctx): Type
     {
         $operandType = $this->checkExpr($expr->operand, $ctx);
@@ -740,58 +917,43 @@ final class TypeChecker
     }
 
     private function checkCall(CallExpr $expr, Context $ctx): Type
-    {
-        // Callee doit être une VariableExpr (nom de fonction)
-        if (!$expr->callee instanceof VariableExpr) {
-            throw new TypeError(
-                "Appel de fonction non supporté sur ce type de callee",
-                $this->file,
-                $expr->line(),
-                $expr->column(),
-            );
-        }
-
-        $name = $expr->callee->name;
-        $info = $this->globals->getFunction($name);
-        if ($info === null) {
-            throw new TypeError(
-                "Fonction '{$name}' inconnue",
-                $this->file,
-                $expr->line(),
-                $expr->column(),
-            );
-        }
-
-        // Nombre d'arguments
-        $expected = count($info->params);
-        $actual = count($expr->args);
-        if ($actual !== $expected) {
-            throw new TypeError(
-                "Fonction '{$name}' attend {$expected} argument(s), "
-                . "mais reçoit {$actual}",
-                $this->file,
-                $expr->line(),
-                $expr->column(),
-            );
-        }
-
-        // Types des arguments
-        foreach ($info->params as $i => $param) {
-            $expectedType = TypeFactory::fromNode($param->type);
-            $argType = $this->checkExpr($expr->args[$i], $ctx);
-            if (!$this->subtypes->isSubtypeOf($argType, $expectedType)) {
-                throw new TypeError(
-                    "Argument " . ($i + 1) . " de '{$name}' : "
-                    . "attendu '{$expectedType}', reçu '{$argType}'",
-                    $this->file,
-                    $expr->args[$i]->line(),
-                    $expr->args[$i]->column(),
-                );
-            }
-        }
-
-        return $info->returnType;
+{
+    if (!$expr->callee instanceof VariableExpr) {
+        throw new TypeError(
+            "Appel de fonction non supporté sur ce type de callee",
+            $this->file,
+            $expr->line(),
+            $expr->column(),
+        );
     }
+
+    $name = $expr->callee->name;
+    $overloads = $this->globals->getFunctions($name);
+    if (empty($overloads)) {
+        throw new TypeError(
+            "Fonction '{$name}' inconnue",
+            $this->file,
+            $expr->line(),
+            $expr->column(),
+        );
+    }
+
+    $argTypes = array_map(
+        fn($arg) => $this->checkExpr($arg, $ctx),
+        $expr->args,
+    );
+
+    $func = $this->overloads->resolve(
+        $overloads,
+        $argTypes,
+        $name,
+        $this->file,
+        $expr->line(),
+        $expr->column(),
+    );
+
+    return $func->returnType ?? new MixedType();
+}
 
     private function checkIndex(IndexExpr $expr, Context $ctx): Type
     {
@@ -828,135 +990,131 @@ final class TypeChecker
         );
     }
 
-    private function checkPropertyAccess(PropertyAccessExpr $expr, Context $ctx): Type
-    {
-        $targetType = $this->checkExpr($expr->target, $ctx);
+  private function checkPropertyAccess(PropertyAccessExpr $expr, Context $ctx): Type
+{
+    $targetType = $this->checkExpr($expr->target, $ctx);
 
-        if (!$targetType instanceof ClassType) {
-            throw new TypeError(
-                "Impossible d'accéder à la propriété '{$expr->property}' "
-                . "sur un '{$targetType}'",
-                $this->file,
-                $expr->line(),
-                $expr->column(),
-            );
-        }
-
-        $class = $this->globals->getClass($targetType->name);
-        if ($class === null) {
-            throw new TypeError(
-                "Classe '{$targetType->name}' inconnue",
-                $this->file,
-                $expr->line(),
-                $expr->column(),
-            );
-        }
-
-        $prop = $class->properties[$expr->property] ?? null;
-        if ($prop === null) {
-            throw new TypeError(
-                "Propriété '{$expr->property}' inconnue dans la classe '{$class->name}'",
-                $this->file,
-                $expr->line(),
-                $expr->column(),
-            );
-        }
-
-        // Visibilité
-        if (!$prop->isPublic()) {
-            $inSameClass = $ctx->currentClass !== null
-                && $ctx->currentClass->name === $class->name;
-            if (!$inSameClass) {
-                throw new TypeError(
-                    "Accès interdit à la propriété non publique '{$class->name}::\${$expr->property}'",
-                    $this->file,
-                    $expr->line(),
-                    $expr->column(),
-                );
-            }
-        }
-
-        return $prop->type;
+    if (!$targetType instanceof ClassType) {
+        throw new TypeError(
+            "Impossible d'accéder à la propriété '{$expr->property}' "
+            . "sur un '{$targetType}'",
+            $this->file,
+            $expr->line(),
+            $expr->column(),
+        );
     }
 
-    private function checkMethodCall(MethodCallExpr $expr, Context $ctx): Type
-    {
-        $targetType = $this->checkExpr($expr->target, $ctx);
-
-        if (!$targetType instanceof ClassType) {
-            throw new TypeError(
-                "Impossible d'appeler la méthode '{$expr->method}' "
-                . "sur un '{$targetType}'",
-                $this->file,
-                $expr->line(),
-                $expr->column(),
-            );
-        }
-
-        $class = $this->globals->getClass($targetType->name);
-        if ($class === null) {
-            throw new TypeError(
-                "Classe '{$targetType->name}' inconnue",
-                $this->file,
-                $expr->line(),
-                $expr->column(),
-            );
-        }
-
-        $method = $class->methods[$expr->method] ?? null;
-        if ($method === null) {
-            throw new TypeError(
-                "Méthode '{$expr->method}' inconnue dans la classe '{$class->name}'",
-                $this->file,
-                $expr->line(),
-                $expr->column(),
-            );
-        }
-
-        // Visibilité
-        if (!$method->isPublic()) {
-            $inSameClass = $ctx->currentClass !== null
-                && $ctx->currentClass->name === $class->name;
-            if (!$inSameClass) {
-                throw new TypeError(
-                    "Appel interdit à la méthode non publique '{$class->name}::{$expr->method}'",
-                    $this->file,
-                    $expr->line(),
-                    $expr->column(),
-                );
-            }
-        }
-
-        // Nombre d'arguments
-        $expected = count($method->params);
-        $actual = count($expr->args);
-        if ($actual !== $expected) {
-            throw new TypeError(
-                "Méthode '{$class->name}::{$expr->method}' attend {$expected} argument(s), "
-                . "mais reçoit {$actual}",
-                $this->file,
-                $expr->line(),
-                $expr->column(),
-            );
-        }
-
-        // Types des arguments
-        foreach ($method->params as $i => $param) {
-            $expectedType = TypeFactory::fromNode($param->type, $class->name, $class->parent);
-            $argType = $this->checkExpr($expr->args[$i], $ctx);
-            if (!$this->subtypes->isSubtypeOf($argType, $expectedType)) {
-                throw new TypeError(
-                    "Argument " . ($i + 1) . " de '{$class->name}::{$expr->method}' : "
-                    . "attendu '{$expectedType}', reçu '{$argType}'",
-                    $this->file,
-                    $expr->args[$i]->line(),
-                    $expr->args[$i]->column(),
-                );
-            }
-        }
-
-        return $method->returnType;
+    if (!$this->globals->classExists($targetType->name)) {
+        throw new TypeError(
+            "Classe '{$targetType->name}' inconnue",
+            $this->file,
+            $expr->line(),
+            $expr->column(),
+        );
     }
+
+    $prop = $this->members->findProperty($targetType->name, $expr->property);
+    if ($prop === null) {
+        throw new TypeError(
+            "Propriété '{$expr->property}' inconnue dans la classe '{$targetType->name}'",
+            $this->file,
+            $expr->line(),
+            $expr->column(),
+        );
+    }
+
+    if (!$this->members->canAccessProperty($prop, $ctx->currentClass)) {
+        throw new TypeError(
+            "Accès interdit à la propriété non publique '{$targetType->name}::\${$expr->property}'",
+            $this->file,
+            $expr->line(),
+            $expr->column(),
+        );
+    }
+
+    return $prop->type;
+}
+
+  private function checkMethodCall(MethodCallExpr $expr, Context $ctx): Type
+{
+    $targetType = $this->checkExpr($expr->target, $ctx);
+
+    if (!$targetType instanceof ClassType) {
+        throw new TypeError(
+            "Impossible d'appeler la méthode '{$expr->method}' sur un '{$targetType}'",
+            $this->file,
+            $expr->line(),
+            $expr->column(),
+        );
+    }
+
+    if (!$this->globals->classExists($targetType->name)) {
+        throw new TypeError(
+            "Classe '{$targetType->name}' inconnue",
+            $this->file,
+            $expr->line(),
+            $expr->column(),
+        );
+    }
+
+    $overloads = $this->members->findMethodOverloads($targetType->name, $expr->method);
+    if (empty($overloads)) {
+        throw new TypeError(
+            "Méthode '{$expr->method}' inconnue dans la classe '{$targetType->name}'",
+            $this->file,
+            $expr->line(),
+            $expr->column(),
+        );
+    }
+
+    // Visibilité : on vérifie sur la première surcharge (elles ont toutes la même visibilité)
+    $first = $overloads[0];
+    if (!$this->members->canAccessMethod($first, $ctx->currentClass)) {
+        throw new TypeError(
+            "Appel interdit à la méthode non publique '{$targetType->name}::{$expr->method}'",
+            $this->file,
+            $expr->line(),
+            $expr->column(),
+        );
+    }
+
+    // Évaluer les types des arguments
+    $argTypes = array_map(
+        fn($arg) => $this->checkExpr($arg, $ctx),
+        $expr->args,
+    );
+
+    // Résoudre la surcharge
+    $method = $this->overloads->resolve(
+        $overloads,
+        $argTypes,
+        "{$targetType->name}::{$expr->method}",
+        $this->file,
+        $expr->line(),
+        $expr->column(),
+    );
+
+    return $method->returnType ?? new MixedType();
+}
+/**
+ * Trouve la classe qui déclare réellement la méthode.
+ */
+private function findDeclaringClass(string $className, string $methodName): ?ClassInfo
+{
+    $class = $this->globals->getClass($className);
+    while ($class !== null) {
+        if (isset($class->methods[$methodName])) {
+            return $class;
+        }
+        $class = $class->parent !== null ? $this->globals->getClass($class->parent) : null;
+    }
+    return null;
+}
+
+/**
+ * Trouve la classe qui déclare réellement la méthode.
+ */
+
 
     private function checkDotAccess(DotAccessExpr $expr, Context $ctx): Type
     {
@@ -1019,52 +1177,54 @@ final class TypeChecker
         }
 
         if ($class->isInterface) {
-            throw new TypeError(
-                "Impossible d'instancier une interface '{$expr->className}'",
-                $this->file,
-                $expr->line(),
-                $expr->column(),
-            );
-        }
+    throw new TypeError(
+        "Impossible d'instancier une interface '{$expr->className}'",
+        $this->file,
+        $expr->line(),
+        $expr->column(),
+    );
+}
+
+if (in_array('abstract', $class->modifiers, true)) {
+    throw new TypeError(
+        "Impossible d'instancier la classe abstraite '{$expr->className}'",
+        $this->file,
+        $expr->line(),
+        $expr->column(),
+    );
+}
 
         // Vérifier le constructeur
-        $ctor = $class->methods['__construct'] ?? null;
-        if ($ctor !== null) {
-            $expected = count($ctor->params);
-            $actual = count($expr->args);
-            if ($actual !== $expected) {
-                throw new TypeError(
-                    "Constructeur de '{$class->name}' attend {$expected} argument(s), "
-                    . "mais reçoit {$actual}",
+        // Résolution du constructeur
+            $ctorOverloads = $class->methods['__construct'] ?? [];
+
+            if (empty($ctorOverloads)) {
+                if (!empty($expr->args)) {
+                    throw new TypeError(
+                        "La classe '{$class->name}' n'a pas de constructeur, "
+                        . "mais " . count($expr->args) . " argument(s) sont fournis",
+                        $this->file,
+                        $expr->line(),
+                        $expr->column(),
+                    );
+                }
+            } else {
+                $argTypes = array_map(
+                    fn($arg) => $this->checkExpr($arg, $ctx),
+                    $expr->args,
+                );
+
+                $this->overloads->resolve(
+                    $ctorOverloads,
+                    $argTypes,
+                    "{$class->name}::__construct",
                     $this->file,
                     $expr->line(),
                     $expr->column(),
                 );
             }
-            foreach ($ctor->params as $i => $param) {
-                $expectedType = TypeFactory::fromNode($param->type, $class->name, $class->parent);
-                $argType = $this->checkExpr($expr->args[$i], $ctx);
-                if (!$this->subtypes->isSubtypeOf($argType, $expectedType)) {
-                    throw new TypeError(
-                        "Argument " . ($i + 1) . " du constructeur de '{$class->name}' : "
-                        . "attendu '{$expectedType}', reçu '{$argType}'",
-                        $this->file,
-                        $expr->args[$i]->line(),
-                        $expr->args[$i]->column(),
-                    );
-                }
-            }
-        } elseif (count($expr->args) > 0) {
-            throw new TypeError(
-                "La classe '{$class->name}' n'a pas de constructeur, "
-                . "mais " . count($expr->args) . " argument(s) sont fournis",
-                $this->file,
-                $expr->line(),
-                $expr->column(),
-            );
-        }
 
-        return new ClassType($class->name);
+            return new ClassType($class->name);
     }
 
     private function checkInstanceof(InstanceofExpr $expr, Context $ctx): Type
@@ -1126,4 +1286,68 @@ final class TypeChecker
             }
         }
     }
+
+    /**
+ * Applique des narrowings à un scope donné.
+ *
+ * @param array<string, string> $narrowings
+ */
+private function applyNarrowings(Scope $scope, array $narrowings): void
+{
+    foreach ($narrowings as $varName => $op) {
+        $symbol = $scope->lookup($varName);
+        if ($symbol === null) {
+            continue;
+        }
+
+        $narrowedType = $this->computeNarrowedType($symbol->type, $op);
+        if ($narrowedType === null) {
+            continue;
+        }
+
+        $scope->redefine(new Symbol(
+            $varName,
+            $symbol->kind,
+            $narrowedType,
+            $symbol->line,
+            $symbol->column,
+        ));
+    }
+}
+
+private function computeNarrowedType(Type $current, string $op): ?Type
+{
+    if ($op === 'remove-null') {
+        if ($current instanceof NullableType) {
+            return $current->inner;
+        }
+        if ($current instanceof UnionType) {
+            $members = array_values(array_filter(
+                $current->members,
+                fn(Type $m) => !$m instanceof NullType,
+            ));
+            if (count($members) === 0) {
+                return new NullType();
+            }
+            if (count($members) === 1) {
+                return $members[0];
+            }
+            return new UnionType($members);
+        }
+        return null;
+    }
+
+    if ($op === 'null') {
+        return new NullType();
+    }
+
+    if (str_starts_with($op, 'instanceof:')) {
+        $className = substr($op, strlen('instanceof:'));
+        return new ClassType($className);
+    }
+
+    return null;
+}
+
+  // checkIf
 }

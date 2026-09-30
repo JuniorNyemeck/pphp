@@ -185,6 +185,24 @@ final class AstPrinter
                 $lines[] = $pad . 'Foreach';
                 $lines[] = $pad . '  Iterable';
                 $this->printExpr($stmt->iterable, $lines, $indent + 2);
+
+                if ($stmt->key !== null && $stmt->keyType !== null) {
+                    $lines[] = $pad . '  Key (' . $this->typeToString($stmt->keyType) . ')';
+                    $this->printExpr($stmt->key, $lines, $indent + 2);
+                }
+                if ($stmt->valueType !== null) {
+                    $lines[] = $pad . '  Value (' . $this->typeToString($stmt->valueType) . ')';
+                    $this->printExpr($stmt->value, $lines, $indent + 2);
+                } else {
+                    $lines[] = $pad . '  Value';
+                    $this->printExpr($stmt->value, $lines, $indent + 2);
+                }
+                $lines[] = $pad . '  Body';
+                $this->printStmt($stmt->body, $lines, $indent + 2);
+                break;
+                $lines[] = $pad . 'Foreach';
+                $lines[] = $pad . '  Iterable';
+                $this->printExpr($stmt->iterable, $lines, $indent + 2);
                 if ($stmt->key !== null && $stmt->keyType !== null) {
                     $lines[] = $pad . '  Key (' . $this->typeToString($stmt->keyType) . ')';
                     $this->printExpr($stmt->key, $lines, $indent + 2);

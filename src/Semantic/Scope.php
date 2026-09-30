@@ -66,4 +66,13 @@ final class Scope
     {
         return $this->symbols;
     }
+
+    /**
+ * Redéfinit un symbole existant, sans lever d'erreur de redéclaration.
+ * Utilisé par le narrowing pour remplacer temporairement un type.
+ */
+public function redefine(Symbol $symbol): void
+{
+    $this->symbols[$symbol->name] = $symbol;
+}
 }

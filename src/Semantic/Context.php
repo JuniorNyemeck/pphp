@@ -61,17 +61,17 @@ final class Context
         );
     }
 
-    public function withFunction(Type $returnType): self
-    {
-        return new self(
-            $this->scope,
-            null,
-            null,
-            $returnType,
-            $this->loopDepth,
-            false,
-        );
-    }
+    public function withFunction(?Type $returnType): self
+{
+    return new self(
+        $this->scope,
+        null,
+        null,
+        $returnType,
+        $this->loopDepth,
+        false,
+    );
+}
 
     public function inLoop(): bool
     {

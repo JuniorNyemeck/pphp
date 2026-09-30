@@ -6,10 +6,14 @@ namespace PPhp\Semantic;
 
 final class ClassInfo
 {
-    /** @var array<string, PropertyInfo> */
+        /** @var array<string, PropertyInfo> */
     public array $properties = [];
 
-    /** @var array<string, MethodInfo> */
+    /**
+     * Méthodes par nom. Chaque nom peut avoir plusieurs surcharges.
+     *
+     * @var array<string, MethodInfo[]>
+     */
     public array $methods = [];
 
     /**

@@ -182,6 +182,8 @@ final class Parser
             $t->type === TokenType::KwFunction      => $this->parseFunctionDecl(),
             $t->type === TokenType::KwClass         => $this->parseClassDecl(false),
             $t->type === TokenType::KwInterface     => $this->parseClassDecl(true),
+            $t->type === TokenType::KwFinal         => $this->parseClassWithModifiers(),
+            $t->type === TokenType::KwAbstract      => $this->parseClassWithModifiers(),
             default => $this->looksLikeTypedDeclaration()
                         ? $this->parseVarDecl()
                         : $this->parseExpressionStatement(),
@@ -1162,7 +1164,15 @@ $pairs = 0;
 
         $name = $this->expect(TokenType::Identifier, "Nom de fonction attendu");
         $params = $this->parseParams();
-        $returnType = $this->parseReturnType();
+        $returnType = null;
+        if ($this->check(TokenType::Colon)) {
+            $returnType = $this->parseReturnType();
+        }
+
+        if ($returnType === null) {
+            $this->error("Type de retour obligatoire pour la fonction '{$name->value}'");
+        }
+        
         $body = $this->parseBlock();
 
         return new FunctionDeclStmt(
@@ -1267,7 +1277,21 @@ $pairs = 0;
 
         $name = $this->expect(TokenType::Identifier, "Nom de méthode attendu");
         $params = $this->parseParams();
-        $returnType = $this->parseReturnType();
+        $returnType = null;
+if ($this->check(TokenType::Colon)) {
+    $returnType = $this->parseReturnType();
+}
+
+// Type de retour obligatoire sauf pour __construct et __destruct
+$methodName = (string) $name->value;
+if ($returnType === null
+) {
+    if ($returnType === null
+    && !in_array($methodName, ['__construct', '__destruct'], true)
+) {
+    $this->error("Type de retour obligatoire pour la méthode '{$methodName}'");
+}
+}
 
         $body = null;
         if ($this->check(TokenType::LBrace)) {
@@ -1319,5 +1343,47 @@ $pairs = 0;
         );
     }
 
-    //printExpr
+    /**
+ * Parse `final class`, `abstract class`, `final interface`, etc.
+ * Consomme les modificateurs, puis délègue à parseClassDecl.
+ */
+private function parseClassWithModifiers(): ClassDeclStmt
+{
+    $modifiers = [];
+    while (true) {
+        $t = $this->current()->type;
+        $mod = match ($t) {
+            TokenType::KwFinal    => 'final',
+            TokenType::KwAbstract => 'abstract',
+            default               => null,
+        };
+        if ($mod === null) {
+            break;
+        }
+        if (in_array($mod, $modifiers, true)) {
+            $this->error("Modificateur '$mod' dupliqué");
+        }
+        $modifiers[] = $mod;
+        $this->advance();
+    }
+
+    if (!$this->check(TokenType::KwClass) && !$this->check(TokenType::KwInterface)) {
+        $this->error("'class' ou 'interface' attendu après les modificateurs");
+    }
+
+    $isInterface = $this->check(TokenType::KwInterface);
+    $classDecl = $this->parseClassDecl($isInterface);
+
+    // Injecter les modificateurs dans le ClassDeclStmt
+    return new ClassDeclStmt(
+        $classDecl->line(),
+        $classDecl->column(),
+        $modifiers,
+        $classDecl->name,
+        $classDecl->extends,
+        $classDecl->implements,
+        $classDecl->members,
+        $classDecl->isInterface,
+    );
+}
 }
