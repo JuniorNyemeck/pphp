@@ -442,29 +442,35 @@ final class TypeChecker
         }
     }
 
-    private function checkFor(ForStmt $stmt, Context $ctx): void
-{
-    $scope = new Scope($ctx->scope, 'for');
-    $innerCtx = $ctx->withScope($scope)->withLoop();
+        private function checkFor(ForStmt $stmt, Context $ctx): void
+    {
+        $scope = new Scope($ctx->scope, 'for');
+        $innerCtx = $ctx->withScope($scope)->withLoop();
 
-    foreach ($stmt->init as $e) {
-        $this->checkExpr($e, $innerCtx);
-    }
-    foreach ($stmt->cond as $e) {
-        $this->requireBool($e, $innerCtx, "condition de 'for'");
-    }
-    foreach ($stmt->step as $e) {
-        $this->checkExpr($e, $innerCtx);
-    }
+        // Init : soit déclaration typée, soit expressions
+        if ($stmt->initDecl !== null) {
+            $this->checkVarDecl($stmt->initDecl, $innerCtx);
+        } else {
+            foreach ($stmt->init as $e) {
+                $this->checkExpr($e, $innerCtx);
+            }
+        }
 
-    // Narrowing dans le corps à partir des conditions
-    $bodyScope = new Scope($innerCtx->scope, 'for-body');
-    foreach ($stmt->cond as $cond) {
-        $this->applyNarrowings($bodyScope, $this->narrowing->positive($cond));
-    }
+        foreach ($stmt->cond as $e) {
+            $this->requireBool($e, $innerCtx, "condition de 'for'");
+        }
+        foreach ($stmt->step as $e) {
+            $this->checkExpr($e, $innerCtx);
+        }
 
-    $this->checkStatement($stmt->body, $innerCtx->withScope($bodyScope));
-}
+        // Narrowing dans le corps à partir des conditions
+        $bodyScope = new Scope($innerCtx->scope, 'for-body');
+        foreach ($stmt->cond as $cond) {
+            $this->applyNarrowings($bodyScope, $this->narrowing->positive($cond));
+        }
+
+        $this->checkStatement($stmt->body, $innerCtx->withScope($bodyScope));
+    }
 
 private function checkForeach(ForeachStmt $stmt, Context $ctx): void
 {

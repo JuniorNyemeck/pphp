@@ -42,13 +42,13 @@ final class HierarchyTest extends TestCase
 
     public function testSimpleInheritance(): void
     {
-        $this->collect('<?php class Animal {} class Dog extends Animal {}');
+        $this->collect('<?pphp class Animal {} class Dog extends Animal {}');
         $this->assertTrue(true);
     }
 
     public function testTransitiveInheritance(): void
     {
-        $this->collect('<?php
+        $this->collect('<?pphp
             class A {}
             class B extends A {}
             class C extends B {}
@@ -59,7 +59,7 @@ final class HierarchyTest extends TestCase
     public function testUnknownParent(): void
     {
         $this->assertValidationError(
-            '<?php class Foo extends Bar {}',
+            '<?pphp class Foo extends Bar {}',
             "Classe parente 'Bar' inconnue"
         );
     }
@@ -67,7 +67,7 @@ final class HierarchyTest extends TestCase
     public function testClassExtendingInterface(): void
     {
         $this->assertValidationError(
-            '<?php interface I {} class Foo extends I {}',
+            '<?pphp interface I {} class Foo extends I {}',
             "ne peut pas étendre l'interface"
         );
     }
@@ -75,7 +75,7 @@ final class HierarchyTest extends TestCase
     public function testInterfaceExtendingClass(): void
 {
     $this->assertValidationError(
-        '<?php class A {} interface I extends A {}',
+        '<?pphp class A {} interface I extends A {}',
         "Une interface ne peut étendre qu'une interface"
     );
 }
@@ -83,7 +83,7 @@ final class HierarchyTest extends TestCase
     public function testUnknownInterface(): void
     {
         $this->assertValidationError(
-            '<?php class Foo implements Bar {}',
+            '<?pphp class Foo implements Bar {}',
             "Interface 'Bar' inconnue"
         );
     }
@@ -91,7 +91,7 @@ final class HierarchyTest extends TestCase
     public function testImplementingNonInterface(): void
     {
         $this->assertValidationError(
-            '<?php class A {} class Foo implements A {}',
+            '<?pphp class A {} class Foo implements A {}',
             "n'est pas une interface"
         );
     }
@@ -99,7 +99,7 @@ final class HierarchyTest extends TestCase
     public function testInheritanceCycle(): void
     {
         $this->assertValidationError(
-            '<?php class A extends B {} class B extends A {}',
+            '<?pphp class A extends B {} class B extends A {}',
             "Cycle d'héritage"
         );
     }
@@ -107,14 +107,14 @@ final class HierarchyTest extends TestCase
     public function testSelfInheritanceCycle(): void
     {
         $this->assertValidationError(
-            '<?php class A extends A {}',
+            '<?pphp class A extends A {}',
             "Cycle d'héritage"
         );
     }
 
     public function testSubtypeTransitivity(): void
     {
-        $globals = $this->collect('<?php
+        $globals = $this->collect('<?pphp
             class A {}
             class B extends A {}
             class C extends B {}
@@ -129,7 +129,7 @@ final class HierarchyTest extends TestCase
 
     public function testInterfaceImplementation(): void
     {
-        $globals = $this->collect('<?php
+        $globals = $this->collect('<?pphp
             interface I {}
             class Foo implements I {}
         ');
@@ -139,7 +139,7 @@ final class HierarchyTest extends TestCase
 
     public function testInterfaceInheritanceTransitive(): void
     {
-        $globals = $this->collect('<?php
+        $globals = $this->collect('<?pphp
             interface I {}
             interface J extends I {}
             class Foo implements J {}

@@ -47,7 +47,7 @@ final class OverloadResolutionTest extends TestCase
 
     public function testResolveFunctionInt(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             function f(int $x): void {}
             function f(string $x): void {}
             f(5);
@@ -57,7 +57,7 @@ final class OverloadResolutionTest extends TestCase
 
     public function testResolveFunctionString(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             function f(int $x): void {}
             function f(string $x): void {}
             f("hello");
@@ -67,7 +67,7 @@ final class OverloadResolutionTest extends TestCase
 
     public function testResolveFunctionNoMatch(): void
     {
-        $this->assertError('<?php
+        $this->assertError('<?pphp
             function f(int $x): void {}
             function f(string $x): void {}
             f(true);
@@ -76,7 +76,7 @@ final class OverloadResolutionTest extends TestCase
 
     public function testResolveFunctionWrongArgCount(): void
     {
-        $this->assertError('<?php
+        $this->assertError('<?pphp
             function f(int $x): void {}
             function f(string $x): void {}
             f(5, 6);
@@ -89,7 +89,7 @@ final class OverloadResolutionTest extends TestCase
 
     public function testResolveFunctionReturnType(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             function f(int $x): int { return $x; }
             function f(string $x): string { return $x; }
             int $a = f(5);
@@ -104,7 +104,7 @@ final class OverloadResolutionTest extends TestCase
 
     public function testResolveMethodInt(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             class A {
                 public function f(int $x): void {}
                 public function f(string $x): void {}
@@ -117,7 +117,7 @@ final class OverloadResolutionTest extends TestCase
 
     public function testResolveMethodString(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             class A {
                 public function f(int $x): void {}
                 public function f(string $x): void {}
@@ -130,7 +130,7 @@ final class OverloadResolutionTest extends TestCase
 
     public function testResolveMethodNoMatch(): void
     {
-        $this->assertError('<?php
+        $this->assertError('<?pphp
             class A {
                 public function f(int $x): void {}
                 public function f(string $x): void {}
@@ -146,7 +146,7 @@ final class OverloadResolutionTest extends TestCase
 
     public function testResolveConstructorInt(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             class A {
                 public function __construct(int $x) {}
                 public function __construct(string $x) {}
@@ -158,7 +158,7 @@ final class OverloadResolutionTest extends TestCase
 
     public function testResolveConstructorString(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             class A {
                 public function __construct(int $x) {}
                 public function __construct(string $x) {}
@@ -170,7 +170,7 @@ final class OverloadResolutionTest extends TestCase
 
     public function testResolveConstructorNoMatch(): void
     {
-        $this->assertError('<?php
+        $this->assertError('<?pphp
             class A {
                 public function __construct(int $x) {}
                 public function __construct(string $x) {}
@@ -186,7 +186,7 @@ final class OverloadResolutionTest extends TestCase
     public function testInheritOverloads(): void
 {
     // Child hérite de f(string) et redéfinit f(int)
-    $this->check('<?php
+    $this->check('<?pphp
         class Base {
             public function f(int $x): void {}
             public function f(string $x): void {}
@@ -207,7 +207,7 @@ final class OverloadResolutionTest extends TestCase
 
     public function testSubtypeArgMatches(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             class Animal {}
             class Dog extends Animal {}
             function f(Animal $a): void {}
@@ -224,7 +224,7 @@ final class OverloadResolutionTest extends TestCase
 
     public function testMixedArgNoMatch(): void
     {
-        $this->assertError('<?php
+        $this->assertError('<?pphp
             function f(int $x): void {}
             function f(string $x): void {}
             mixed $m = 5;

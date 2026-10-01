@@ -21,6 +21,7 @@ final class ForStmt extends NodeBase implements Stmt
         public readonly array $cond,
         public readonly array $step,
         public readonly Stmt $body,
+        public readonly ?VarDeclStmt $initDecl = null,
     ) {
         parent::__construct($line, $column);
     }

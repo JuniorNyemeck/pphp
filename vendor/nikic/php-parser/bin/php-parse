@@ -40,7 +40,7 @@ foreach ($files as $file) {
     if ($file === '-') {
         $code = file_get_contents('php://stdin');
         fwrite(STDERR, "====> Stdin:\n");
-    } else if (strpos($file, '<?php') === 0) {
+    } else if (strpos($file, '<?pphp') === 0) {
         $code = $file;
         fwrite(STDERR, "====> Code $code\n");
     } else {

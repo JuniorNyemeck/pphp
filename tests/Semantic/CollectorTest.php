@@ -46,7 +46,7 @@ final class CollectorTest extends TestCase
 
     public function testCollectSimpleFunction(): void
     {
-        $g = $this->collect('<?php function f(int $x): int { return $x; }');
+        $g = $this->collect('<?pphp function f(int $x): int { return $x; }');
         $this->assertTrue($g->functionExists('f'));
         $this->assertSame('int', (string) $g->getFunction('f')->returnType);
     }
@@ -54,7 +54,7 @@ final class CollectorTest extends TestCase
     public function testDuplicateFunction(): void
     {
         $this->assertCollectError(
-            '<?php function f(): void {} function f(): void {}',
+            '<?pphp function f(): void {} function f(): void {}',
             "signature identique"
         );
     }
@@ -64,7 +64,7 @@ final class CollectorTest extends TestCase
         // Le parser refuse déjà `function f() {}` sans type de retour.
         // Donc on teste juste que ça lève bien une erreur.
         $this->expectException(\Throwable::class);
-        $this->collect('<?php function f() {}');
+        $this->collect('<?pphp function f() {}');
     }
 
     // =========================================================================
@@ -73,19 +73,19 @@ final class CollectorTest extends TestCase
 
     public function testCollectSimpleClass(): void
     {
-        $g = $this->collect('<?php class Foo {}');
+        $g = $this->collect('<?pphp class Foo {}');
         $this->assertTrue($g->classExists('Foo'));
     }
 
     public function testCollectClassWithParent(): void
     {
-        $g = $this->collect('<?php class Bar {} class Foo extends Bar {}');
+        $g = $this->collect('<?pphp class Bar {} class Foo extends Bar {}');
         $this->assertSame('Bar', $g->getClass('Foo')->parent);
     }
 
     public function testCollectInterface(): void
     {
-        $g = $this->collect('<?php interface I {}');
+        $g = $this->collect('<?pphp interface I {}');
         $this->assertTrue($g->classExists('I'));
         $this->assertTrue($g->getClass('I')->isInterface);
     }
@@ -93,7 +93,7 @@ final class CollectorTest extends TestCase
     public function testDuplicateClass(): void
     {
         $this->assertCollectError(
-            '<?php class Foo {} class Foo {}',
+            '<?pphp class Foo {} class Foo {}',
             "Redéclaration de la classe 'Foo'"
         );
     }
@@ -104,7 +104,7 @@ final class CollectorTest extends TestCase
 
     public function testCollectProperty(): void
     {
-        $g = $this->collect('<?php class Foo { public int $x; }');
+        $g = $this->collect('<?pphp class Foo { public int $x; }');
         $info = $g->getClass('Foo');
         $this->assertArrayHasKey('x', $info->properties);
         $this->assertSame('int', (string) $info->properties['x']->type);
@@ -112,7 +112,7 @@ final class CollectorTest extends TestCase
 
     public function testCollectMultipleProperties(): void
     {
-        $g = $this->collect('<?php class Foo { public int $a, $b, $c; }');
+        $g = $this->collect('<?pphp class Foo { public int $a, $b, $c; }');
         $info = $g->getClass('Foo');
         $this->assertArrayHasKey('a', $info->properties);
         $this->assertArrayHasKey('b', $info->properties);
@@ -122,21 +122,21 @@ final class CollectorTest extends TestCase
     public function testDuplicateProperty(): void
     {
         $this->assertCollectError(
-            '<?php class Foo { public int $x; public string $x; }',
+            '<?pphp class Foo { public int $x; public string $x; }',
             "Redéclaration de la propriété 'x'"
         );
     }
 
     public function testPropertyTypeArray(): void
     {
-        $g = $this->collect('<?php class Foo { public string[] $names; }');
+        $g = $this->collect('<?pphp class Foo { public string[] $names; }');
         $info = $g->getClass('Foo');
         $this->assertSame('string[]', (string) $info->properties['names']->type);
     }
 
     public function testPropertyTypeNullable(): void
     {
-        $g = $this->collect('<?php class Foo { public ?int $x; }');
+        $g = $this->collect('<?pphp class Foo { public ?int $x; }');
         $info = $g->getClass('Foo');
         $this->assertSame('?int', (string) $info->properties['x']->type);
     }
@@ -147,7 +147,7 @@ final class CollectorTest extends TestCase
 
     public function testCollectMethod(): void
     {
-        $g = $this->collect('<?php class Foo { public function getX(): int { return 1; } }');
+        $g = $this->collect('<?pphp class Foo { public function getX(): int { return 1; } }');
         $info = $g->getClass('Foo');
         $this->assertArrayHasKey('getX', $info->methods);
         $this->assertSame('int', (string) $info->methods['getX'][0]->returnType);
@@ -156,7 +156,7 @@ final class CollectorTest extends TestCase
     public function testDuplicateMethod(): void
     {
         $this->assertCollectError(
-            '<?php class Foo {
+            '<?pphp class Foo {
                 public function m(): void {}
                 public function m(): void {}
             }',
@@ -166,7 +166,7 @@ final class CollectorTest extends TestCase
 
     public function testMethodIsAbstract(): void
     {
-        $g = $this->collect('<?php interface I { public function m(): int; }');
+        $g = $this->collect('<?pphp interface I { public function m(): int; }');
         $info = $g->getClass('I');
         $this->assertTrue($info->methods['m'][0]->isAbstract());
     }
@@ -177,14 +177,14 @@ final class CollectorTest extends TestCase
 
     public function testSelfResolvesToCurrentClass(): void
     {
-        $g = $this->collect('<?php class Foo { public function copy(): self { return $this; } }');
+        $g = $this->collect('<?pphp class Foo { public function copy(): self { return $this; } }');
         $info = $g->getClass('Foo');
         $this->assertSame('Foo', (string) $info->methods['copy'][0]->returnType);
     }
 
     public function testParentResolvesToParentClass(): void
 {
-    $g = $this->collect('<?php class Bar {} class Foo extends Bar {
+    $g = $this->collect('<?pphp class Bar {} class Foo extends Bar {
         public function p(): parent { return $this; }
     }');
     $info = $g->getClass('Foo');

@@ -44,34 +44,34 @@ final class TypeCheckerTest extends TestCase
 
     public function testSimpleDecl(): void
     {
-        $this->check('<?php int $a = 5;');
+        $this->check('<?pphp int $a = 5;');
         $this->assertTrue(true);
     }
 
     public function testDeclTypeMismatch(): void
     {
-        $this->assertTypeError('<?php int $a = "hello";', 'Type incompatible');
+        $this->assertTypeError('<?pphp int $a = "hello";', 'Type incompatible');
     }
 
     public function testIntToFloatAllowed(): void
     {
-        $this->check('<?php float $f = 5;'); // int → float OK
+        $this->check('<?pphp float $f = 5;'); // int → float OK
         $this->assertTrue(true);
     }
 
     public function testFloatToIntForbidden(): void
     {
-        $this->assertTypeError('<?php int $i = 3.14;', 'Type incompatible');
+        $this->assertTypeError('<?pphp int $i = 3.14;', 'Type incompatible');
     }
 
     public function testRedéclaration(): void
     {
-        $this->assertTypeError('<?php int $a = 1; int $a = 2;', 'Redéclaration');
+        $this->assertTypeError('<?pphp int $a = 1; int $a = 2;', 'Redéclaration');
     }
 
     public function testVariableNotDeclared(): void
     {
-        $this->assertTypeError('<?php echo $x;', "Variable '\$x' non déclarée");
+        $this->assertTypeError('<?pphp echo $x;', "Variable '\$x' non déclarée");
     }
 
     // =========================================================================
@@ -80,31 +80,31 @@ final class TypeCheckerTest extends TestCase
 
     public function testArithmetic(): void
     {
-        $this->check('<?php int $a = 1 + 2;');
-        $this->check('<?php float $b = 1 + 2.5;');
-        $this->check('<?php int $c = 2 * 3;');
+        $this->check('<?pphp int $a = 1 + 2;');
+        $this->check('<?pphp float $b = 1 + 2.5;');
+        $this->check('<?pphp int $c = 2 * 3;');
         $this->assertTrue(true);
     }
 
     public function testStringConcatWithDot(): void
     {
-        $this->check('<?php string $s = "a" . "b";');
+        $this->check('<?pphp string $s = "a" . "b";');
         $this->assertTrue(true);
     }
 
     public function testStringConcatWithPlusForbidden(): void
     {
-        $this->assertTypeError('<?php string $s = "a" + "b";', 'Opération invalide');
+        $this->assertTypeError('<?pphp string $s = "a" + "b";', 'Opération invalide');
     }
 
     public function testArithmeticOnStringForbidden(): void
     {
-        $this->assertTypeError('<?php int $x = "a" + 1;', 'Opération invalide');
+        $this->assertTypeError('<?pphp int $x = "a" + 1;', 'Opération invalide');
     }
 
     public function testBoolArithmeticForbidden(): void
     {
-        $this->assertTypeError('<?php int $x = true + false;', 'Opération invalide');
+        $this->assertTypeError('<?pphp int $x = true + false;', 'Opération invalide');
     }
 
     // =========================================================================
@@ -114,15 +114,15 @@ final class TypeCheckerTest extends TestCase
     public function testAssignWrongType(): void
     {
         $this->assertTypeError(
-            '<?php int $a = 1; $a = "hello";',
+            '<?pphp int $a = 1; $a = "hello";',
             'Affectation incompatible'
         );
     }
 
     public function testCompoundAssign(): void
     {
-        $this->check('<?php int $a = 1; $a += 2;');
-        $this->check('<?php string $s = "a"; $s .= "b";');
+        $this->check('<?pphp int $a = 1; $a += 2;');
+        $this->check('<?pphp string $s = "a"; $s .= "b";');
         $this->assertTrue(true);
     }
 
@@ -132,18 +132,18 @@ final class TypeCheckerTest extends TestCase
 
     public function testIfRequiresBool(): void
     {
-        $this->assertTypeError('<?php if (5) { }', "doit être de type 'bool'");
+        $this->assertTypeError('<?pphp if (5) { }', "doit être de type 'bool'");
     }
 
     public function testIfWithBoolOk(): void
     {
-        $this->check('<?php bool $b = true; if ($b) { }');
+        $this->check('<?pphp bool $b = true; if ($b) { }');
         $this->assertTrue(true);
     }
 
     public function testWhileRequiresBool(): void
     {
-        $this->assertTypeError('<?php while (1) { }', "doit être de type 'bool'");
+        $this->assertTypeError('<?pphp while (1) { }', "doit être de type 'bool'");
     }
 
     // =========================================================================
@@ -153,7 +153,7 @@ final class TypeCheckerTest extends TestCase
     public function testBlockScope(): void
     {
         $this->assertTypeError(
-            '<?php if (true) { int $x = 5; } echo $x;',
+            '<?pphp if (true) { int $x = 5; } echo $x;',
             "Variable '\$x' non déclarée"
         );
     }
@@ -164,18 +164,18 @@ final class TypeCheckerTest extends TestCase
 
     public function testBreakOutsideLoop(): void
     {
-        $this->assertTypeError('<?php break;', "'break' ne peut être utilisé");
+        $this->assertTypeError('<?pphp break;', "'break' ne peut être utilisé");
     }
 
     public function testBreakInLoop(): void
     {
-        $this->check('<?php while (true) { break; }');
+        $this->check('<?pphp while (true) { break; }');
         $this->assertTrue(true);
     }
 
     public function testContinueOutsideLoop(): void
     {
-        $this->assertTypeError('<?php continue;', "'continue' ne peut être utilisé");
+        $this->assertTypeError('<?pphp continue;', "'continue' ne peut être utilisé");
     }
 
     // =========================================================================
@@ -184,14 +184,14 @@ final class TypeCheckerTest extends TestCase
 
     public function testReturnInFunction(): void
     {
-        $this->check('<?php function f(): int { return 5; }');
+        $this->check('<?pphp function f(): int { return 5; }');
         $this->assertTrue(true);
     }
 
     public function testReturnWrongType(): void
     {
         $this->assertTypeError(
-            '<?php function f(): int { return "hello"; }',
+            '<?pphp function f(): int { return "hello"; }',
             'Type de retour incompatible'
         );
     }
@@ -199,7 +199,7 @@ final class TypeCheckerTest extends TestCase
     public function testReturnValueInVoid(): void
     {
         $this->assertTypeError(
-            '<?php function f(): void { return 5; }',
+            '<?pphp function f(): void { return 5; }',
             "Impossible de retourner une valeur dans une fonction 'void'"
         );
     }
@@ -207,14 +207,14 @@ final class TypeCheckerTest extends TestCase
     public function testReturnVoidInNonVoid(): void
     {
         $this->assertTypeError(
-            '<?php function f(): int { return; }',
+            '<?pphp function f(): int { return; }',
             "'return;' dans une fonction retournant 'int'"
         );
     }
 
     public function testReturnOutsideFunction(): void
     {
-        $this->assertTypeError('<?php return 5;', "'return' ne peut être utilisé");
+        $this->assertTypeError('<?pphp return 5;', "'return' ne peut être utilisé");
     }
 
     // =========================================================================
@@ -224,14 +224,14 @@ final class TypeCheckerTest extends TestCase
     public function testThisOutsideClass(): void
     {
         $this->assertTypeError(
-            '<?php function f(): void { echo $this; }',
+            '<?pphp function f(): void { echo $this; }',
             "'\$this' ne peut être utilisé"
         );
     }
 
     public function testThisInMethod(): void
     {
-        $this->check('<?php class Foo {
+        $this->check('<?pphp class Foo {
             public function f(): void { echo $this; }
         }');
         $this->assertTrue(true);
@@ -240,7 +240,7 @@ final class TypeCheckerTest extends TestCase
     public function testThisInStaticMethodForbidden(): void
     {
         $this->assertTypeError(
-            '<?php class Foo {
+            '<?pphp class Foo {
                 public static function f(): void { echo $this; }
             }',
             "'\$this' ne peut être utilisé dans une méthode statique"
@@ -254,7 +254,7 @@ final class TypeCheckerTest extends TestCase
     public function testFunctionParamTypeMismatch(): void
 {
     $this->assertTypeError(
-        '<?php function f(int $x): int { return $x; } f("hello");',
+        '<?pphp function f(int $x): int { return $x; } f("hello");',
         'Aucune surcharge'
     );
 }
@@ -262,14 +262,14 @@ final class TypeCheckerTest extends TestCase
     public function testFunctionArgCountMismatch(): void
     {
         $this->assertTypeError(
-            '<?php function f(int $x): int { return $x; } f(1, 2);',
+            '<?pphp function f(int $x): int { return $x; } f(1, 2);',
             'attend 1 argument'
         );
     }
 
     public function testUnknownFunction(): void
     {
-        $this->assertTypeError('<?php foo(5);', "Fonction 'foo' inconnue");
+        $this->assertTypeError('<?pphp foo(5);', "Fonction 'foo' inconnue");
     }
 
     // =========================================================================
@@ -278,12 +278,12 @@ final class TypeCheckerTest extends TestCase
 
     public function testUnknownClassInType(): void
     {
-        $this->assertTypeError('<?php Foo $f;', "Classe 'Foo' inconnue");
+        $this->assertTypeError('<?pphp Foo $f;', "Classe 'Foo' inconnue");
     }
 
     public function testClassPropertyAccess(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             class Foo { public int $x; }
             Foo $f = new Foo();
             int $y = $f->x;
@@ -294,7 +294,7 @@ final class TypeCheckerTest extends TestCase
     public function testUnknownProperty(): void
     {
         $this->assertTypeError(
-            '<?php class Foo {} Foo $f = new Foo(); echo $f->bar;',
+            '<?pphp class Foo {} Foo $f = new Foo(); echo $f->bar;',
             "Propriété 'bar' inconnue"
         );
     }
@@ -302,7 +302,7 @@ final class TypeCheckerTest extends TestCase
     public function testPrivatePropertyAccessForbidden(): void
     {
         $this->assertTypeError(
-            '<?php
+            '<?pphp
                 class Foo { private int $x; }
                 Foo $f = new Foo();
                 echo $f->x;
@@ -313,7 +313,7 @@ final class TypeCheckerTest extends TestCase
 
     public function testPrivatePropertyAccessInSameClassAllowed(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             class Foo {
                 private int $x;
                 public function getX(): int { return $this->x; }
@@ -324,13 +324,13 @@ final class TypeCheckerTest extends TestCase
 
     public function testNewUnknownClass(): void
     {
-        $this->assertTypeError('<?php new Foo();', "Classe 'Foo' inconnue");
+        $this->assertTypeError('<?pphp new Foo();', "Classe 'Foo' inconnue");
     }
 
     public function testNewInterfaceForbidden(): void
     {
         $this->assertTypeError(
-            '<?php interface I {} new I();',
+            '<?pphp interface I {} new I();',
             "Impossible d'instancier une interface"
         );
     }
@@ -338,14 +338,14 @@ final class TypeCheckerTest extends TestCase
     public function testInstanceofUnknownClass(): void
     {
         $this->assertTypeError(
-            '<?php class Foo {} Foo $f = new Foo(); bool $b = $f instanceof Bar;',
+            '<?pphp class Foo {} Foo $f = new Foo(); bool $b = $f instanceof Bar;',
             "Classe 'Bar' inconnue"
         );
     }
 
     public function testInstanceofOk(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             class Foo {}
             Foo $f = new Foo();
             bool $b = $f instanceof Foo;
@@ -359,7 +359,7 @@ final class TypeCheckerTest extends TestCase
 
     public function testDotAccessOnObject(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             class Foo { public int $x; }
             Foo $f = new Foo();
             int $y = $f.x;
@@ -370,7 +370,7 @@ final class TypeCheckerTest extends TestCase
     public function testDotAccessOnNonObject(): void
     {
         $this->assertTypeError(
-            '<?php string $s = "hello"; string $x = $s.length;',
+            '<?pphp string $s = "hello"; string $x = $s.length;',
             "Accès '.' sur un 'string'"
         );
     }
@@ -381,7 +381,7 @@ final class TypeCheckerTest extends TestCase
 
     public function testCoalesce(): void
     {
-        $this->check('<?php ?int $a = null; int $b = $a ?? 5;');
+        $this->check('<?pphp ?int $a = null; int $b = $a ?? 5;');
         $this->assertTrue(true);
     }
 
@@ -391,7 +391,7 @@ final class TypeCheckerTest extends TestCase
 
   /* public function testForeachOk(): void
 {
-    $this->check('<?php
+    $this->check('<?pphp
         int[] $arr = [];
         foreach ($arr as int $v) { echo $v; }
     ');
@@ -401,7 +401,7 @@ final class TypeCheckerTest extends TestCase
     public function testForeachWrongValueType(): void
     {
         $this->assertTypeError(
-            '<?php int[] $arr = []; foreach ($arr as string $v) { }',
+            '<?pphp int[] $arr = []; foreach ($arr as string $v) { }',
             "Le type de la valeur de 'foreach'"
         );
     }
@@ -409,7 +409,7 @@ final class TypeCheckerTest extends TestCase
     public function testForeachOnNonArray(): void
     {
         $this->assertTypeError(
-            '<?php int $x = 5; foreach ($x as int $v) { }',
+            '<?pphp int $x = 5; foreach ($x as int $v) { }',
             "L'itéré de 'foreach' doit être un tableau"
         );
     } */
@@ -418,7 +418,7 @@ final class TypeCheckerTest extends TestCase
 
         public function testForeachOk(): void
 {
-    $this->check('<?php
+    $this->check('<?pphp
         int[] $arr = [];
         foreach ($arr as int $v) { echo $v; }
     ');
@@ -428,7 +428,7 @@ final class TypeCheckerTest extends TestCase
 public function testForeachWrongValueType(): void
 {
     $this->assertTypeError(
-        '<?php int[] $arr = []; foreach ($arr as string $v) { }',
+        '<?pphp int[] $arr = []; foreach ($arr as string $v) { }',
         "Le type de la valeur de 'foreach'"
     );
 }
@@ -436,7 +436,7 @@ public function testForeachWrongValueType(): void
 public function testForeachOnNonArray(): void
 {
     $this->assertTypeError(
-        '<?php int $x = 5; foreach ($x as int $v) { }',
+        '<?pphp int $x = 5; foreach ($x as int $v) { }',
         "L'itéré de 'foreach' doit être un tableau"
     );
 }
@@ -445,14 +445,14 @@ public function testForeachMixedArrayRejected(): void
 {
     // Un tableau mixed[] ne peut pas être itéré avec un type précis
     $this->assertTypeError(
-        '<?php array $arr = []; foreach ($arr as int $v) { }',
+        '<?pphp array $arr = []; foreach ($arr as int $v) { }',
         "Impossible de garantir"
     );
 }
 
 public function testForeachWithKey(): void
 {
-    $this->check('<?php
+    $this->check('<?pphp
         string[] $arr = [];
         foreach ($arr as int $k => string $v) { echo $k; echo $v; }
     ');
@@ -462,7 +462,7 @@ public function testForeachWithKey(): void
 public function testForeachInvalidKeyType(): void
 {
     $this->assertTypeError(
-        '<?php string[] $arr = []; foreach ($arr as bool $k => string $v) { }',
+        '<?pphp string[] $arr = []; foreach ($arr as bool $k => string $v) { }',
         "clé de 'foreach' doit être 'int' ou 'string'"
     );
 }
@@ -471,7 +471,7 @@ public function testForeachVariableScopeIsLimited(): void
 {
     // $v n'existe pas après le foreach
     $this->assertTypeError(
-        '<?php int[] $arr = []; foreach ($arr as int $v) { } echo $v;',
+        '<?pphp int[] $arr = []; foreach ($arr as int $v) { } echo $v;',
         "Variable '\$v' non déclarée"
     );
 }
@@ -479,7 +479,7 @@ public function testForeachVariableScopeIsLimited(): void
 public function testForeachValueSubtypeAllowed(): void
 {
     // int[] itéré avec float : int <: float, OK
-    $this->check('<?php
+    $this->check('<?pphp
         int[] $arr = [];
         foreach ($arr as float $v) { echo $v; }
     ');
@@ -489,7 +489,7 @@ public function testForeachValueSubtypeAllowed(): void
 
 public function testAccessInheritedProperty(): void
 {
-    $this->check('<?php
+    $this->check('<?pphp
         class Animal { public string $name; }
         class Dog extends Animal {}
         Dog $d = new Dog();
@@ -500,7 +500,7 @@ public function testAccessInheritedProperty(): void
 
 public function testAccessInheritedMethod(): void
 {
-    $this->check('<?php
+    $this->check('<?pphp
         class Animal { public function speak(): string { return "..."; } }
         class Dog extends Animal {}
         Dog $d = new Dog();
@@ -511,7 +511,7 @@ public function testAccessInheritedMethod(): void
 
 public function testProtectedAccessibleInSubclass(): void
 {
-    $this->check('<?php
+    $this->check('<?pphp
         class Animal { protected string $name; }
         class Dog extends Animal {
             public function getName(): string { return $this->name; }
@@ -522,7 +522,7 @@ public function testProtectedAccessibleInSubclass(): void
 
 public function testProtectedNotAccessibleFromOutside(): void
 {
-    $this->assertTypeError('<?php
+    $this->assertTypeError('<?pphp
         class Animal { protected string $name; }
         Animal $a = new Animal();
         string $n = $a->name;
@@ -531,7 +531,7 @@ public function testProtectedNotAccessibleFromOutside(): void
 
 public function testPrivateNotAccessibleInSubclass(): void
 {
-    $this->assertTypeError('<?php
+    $this->assertTypeError('<?pphp
         class Animal { private string $name; }
         class Dog extends Animal {
             public function getName(): string { return $this->name; }
@@ -542,7 +542,7 @@ public function testPrivateNotAccessibleInSubclass(): void
 public function testSubtypeArgAccepted(): void
 {
     // Dog <: Animal, donc passer un Dog où Animal est attendu fonctionne
-    $this->check('<?php
+    $this->check('<?pphp
         class Animal {}
         class Dog extends Animal {}
         function f(Animal $a): void {}
@@ -554,7 +554,7 @@ public function testSubtypeArgAccepted(): void
 
 public function testSupertypeArgRejected(): void
 {
-    $this->assertTypeError('<?php
+    $this->assertTypeError('<?pphp
         class Animal {}
         class Dog extends Animal {}
         function f(Dog $d): void {}

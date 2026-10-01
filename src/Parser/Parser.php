@@ -145,7 +145,7 @@ final class Parser
 
     private function parseProgram(): ProgramNode
     {
-        $open = $this->expect(TokenType::OpenTag, "Le programme doit commencer par '<?php'");
+        $open = $this->expect(TokenType::OpenTag, "Le programme doit commencer par '<?pphp'");
         $statements = [];
 
         while (!$this->check(TokenType::Eof) && !$this->check(TokenType::CloseTag)) {
@@ -291,20 +291,30 @@ final class Parser
         return new WhileStmt($kw->line, $kw->column, $cond, $body);
     }
 
-    private function parseFor(): ForStmt
+        private function parseFor(): ForStmt
     {
         $kw = $this->advance();
         $this->expect(TokenType::LParen, "'(' attendu après 'for'");
 
-        $init = $this->parseExpressionList(TokenType::Semicolon);
-        $this->expect(TokenType::Semicolon, "';' attendu dans 'for'");
+        // Init : soit une déclaration typée (int $i = 0), soit des expressions
+        $initDecl = null;
+        $init = [];
+
+        if ($this->looksLikeTypedDeclaration()) {
+            $initDecl = $this->parseVarDecl();
+            // parseVarDecl consomme le ';' final
+        } else {
+            $init = $this->parseExpressionList(TokenType::Semicolon);
+            $this->expect(TokenType::Semicolon, "';' attendu dans 'for'");
+        }
+
         $cond = $this->parseExpressionList(TokenType::Semicolon);
         $this->expect(TokenType::Semicolon, "';' attendu dans 'for'");
         $step = $this->parseExpressionList(TokenType::RParen);
         $this->expect(TokenType::RParen, "')' attendu dans 'for'");
 
         $body = $this->parseStatement();
-        return new ForStmt($kw->line, $kw->column, $init, $cond, $step, $body);
+        return new ForStmt($kw->line, $kw->column, $init, $cond, $step, $body, $initDecl);
     }
 
     /**

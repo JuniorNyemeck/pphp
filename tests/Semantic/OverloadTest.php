@@ -39,7 +39,7 @@ final class OverloadTest extends TestCase
 
     public function testOverloadWithDifferentScalarTypes(): void
     {
-        $g = $this->collect('<?php
+        $g = $this->collect('<?pphp
             function f(int $x): void {}
             function f(string $x): void {}
         ');
@@ -48,7 +48,7 @@ final class OverloadTest extends TestCase
 
     public function testOverloadMethodWithDifferentScalarTypes(): void
     {
-        $g = $this->collect('<?php
+        $g = $this->collect('<?pphp
             class A {
                 public function f(int $x): void {}
                 public function f(string $x): void {}
@@ -59,7 +59,7 @@ final class OverloadTest extends TestCase
 
     public function testOverloadConstructor(): void
     {
-        $g = $this->collect('<?php
+        $g = $this->collect('<?pphp
             class A {
                 public function __construct(int $x) {}
                 public function __construct(string $x) {}
@@ -74,7 +74,7 @@ final class OverloadTest extends TestCase
 
     public function testDuplicateSignature(): void
     {
-        $this->assertCollectError('<?php
+        $this->assertCollectError('<?pphp
             function f(int $x): void {}
             function f(int $y): void {}
         ', 'signature identique');
@@ -82,7 +82,7 @@ final class OverloadTest extends TestCase
 
     public function testDuplicateSignatureMethods(): void
     {
-        $this->assertCollectError('<?php
+        $this->assertCollectError('<?pphp
             class A {
                 public function f(int $x): void {}
                 public function f(int $y): void {}
@@ -96,7 +96,7 @@ final class OverloadTest extends TestCase
 
     public function testIntAndFloatNotDisjoint(): void
     {
-        $this->assertCollectError('<?php
+        $this->assertCollectError('<?pphp
             function f(int $x): void {}
             function f(float $x): void {}
         ', 'ne sont pas disjointes');
@@ -104,7 +104,7 @@ final class OverloadTest extends TestCase
 
     public function testMixedNotDisjoint(): void
     {
-        $this->assertCollectError('<?php
+        $this->assertCollectError('<?pphp
             function f(mixed $x): void {}
             function f(int $x): void {}
         ', 'ne sont pas disjointes');
@@ -112,7 +112,7 @@ final class OverloadTest extends TestCase
 
     public function testNullableIntNotDisjoint(): void
     {
-        $this->assertCollectError('<?php
+        $this->assertCollectError('<?pphp
             function f(?int $x): void {}
             function f(int $x): void {}
         ', 'ne sont pas disjointes');
@@ -120,7 +120,7 @@ final class OverloadTest extends TestCase
 
     public function testIntAndStringDisjoint(): void
     {
-        $g = $this->collect('<?php
+        $g = $this->collect('<?pphp
             function f(int $x): void {}
             function f(string $x): void {}
         ');
@@ -129,7 +129,7 @@ final class OverloadTest extends TestCase
 
     public function testNullableIntAndStringDisjoint(): void
     {
-        $g = $this->collect('<?php
+        $g = $this->collect('<?pphp
             function f(?int $x): void {}
             function f(string $x): void {}
         ');
@@ -138,7 +138,7 @@ final class OverloadTest extends TestCase
 
     public function testUnionDisjoint(): void
     {
-        $g = $this->collect('<?php
+        $g = $this->collect('<?pphp
             function f(int|string $x): void {}
             function f(bool $x): void {}
         ');
@@ -147,7 +147,7 @@ final class OverloadTest extends TestCase
 
     public function testUnionNotDisjoint(): void
     {
-        $this->assertCollectError('<?php
+        $this->assertCollectError('<?pphp
             function f(int|string $x): void {}
             function f(int $x): void {}
         ', 'ne sont pas disjointes');
@@ -159,7 +159,7 @@ final class OverloadTest extends TestCase
 
     public function testDifferentParamCountsRejected(): void
     {
-        $this->assertCollectError('<?php
+        $this->assertCollectError('<?pphp
             function f(int $x): void {}
             function f(int $x, int $y): void {}
         ', 'même nombre de paramètres');
@@ -171,7 +171,7 @@ final class OverloadTest extends TestCase
 
     public function testDifferentVisibilityRejected(): void
     {
-        $this->assertCollectError('<?php
+        $this->assertCollectError('<?pphp
             class A {
                 public function f(int $x): void {}
                 protected function f(string $x): void {}
@@ -181,7 +181,7 @@ final class OverloadTest extends TestCase
 
     public function testDifferentStaticRejected(): void
     {
-        $this->assertCollectError('<?php
+        $this->assertCollectError('<?pphp
             class A {
                 public function f(int $x): void {}
                 public static function f(string $x): void {}
@@ -195,7 +195,7 @@ final class OverloadTest extends TestCase
 
     public function testOverloadWithClassesDisjoint(): void
     {
-        $g = $this->collect('<?php
+        $g = $this->collect('<?pphp
             class Dog {}
             class Cat {}
             function f(Dog $x): void {}
@@ -206,7 +206,7 @@ final class OverloadTest extends TestCase
 
     public function testOverloadWithParentChildNotDisjoint(): void
     {
-        $this->assertCollectError('<?php
+        $this->assertCollectError('<?pphp
             class Animal {}
             class Dog extends Animal {}
             function f(Animal $x): void {}

@@ -48,7 +48,7 @@ final class OverloadOverrideTest extends TestCase
     public function testPartialOverride(): void
     {
         // Child redéfinit f(int) mais pas f(string)
-        $this->check('<?php
+        $this->check('<?pphp
             class Base {
                 public function f(int $x): void {}
                 public function f(string $x): void {}
@@ -62,7 +62,7 @@ final class OverloadOverrideTest extends TestCase
 
     public function testFullOverride(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             class Base {
                 public function f(int $x): void {}
                 public function f(string $x): void {}
@@ -78,7 +78,7 @@ final class OverloadOverrideTest extends TestCase
     public function testNewOverloadNotOverride(): void
     {
         // Child ajoute f(bool) qui n'existe pas dans Base
-        $this->check('<?php
+        $this->check('<?pphp
             class Base {
                 public function f(int $x): void {}
             }
@@ -96,7 +96,7 @@ final class OverloadOverrideTest extends TestCase
 
     public function testFinalOnSpecificOverload(): void
     {
-        $this->assertError('<?php
+        $this->assertError('<?pphp
             class Base {
                 final public function f(int $x): void {}
                 public function f(string $x): void {}
@@ -110,7 +110,7 @@ final class OverloadOverrideTest extends TestCase
     public function testFinalOnOneOverloadOtherAllowed(): void
     {
         // f(int) est final, f(string) ne l'est pas
-        $this->check('<?php
+        $this->check('<?pphp
             class Base {
                 final public function f(int $x): void {}
                 public function f(string $x): void {}
@@ -128,7 +128,7 @@ final class OverloadOverrideTest extends TestCase
 
     public function testCovariancePerOverload(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             class Animal {}
             class Dog extends Animal {}
             class Base {
@@ -145,7 +145,7 @@ final class OverloadOverrideTest extends TestCase
 
     public function testCovarianceViolationPerOverload(): void
     {
-        $this->assertError('<?php
+        $this->assertError('<?pphp
             class Animal {}
             class Dog extends Animal {}
             class Base {
@@ -164,7 +164,7 @@ final class OverloadOverrideTest extends TestCase
 
     /* public function testContravariancePerOverload(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             class Animal {}
             class Dog extends Animal {}
             class Base {
@@ -181,7 +181,7 @@ final class OverloadOverrideTest extends TestCase
  */
     public function testContravarianceViolationPerOverload(): void
 {
-    $this->assertError('<?php
+    $this->assertError('<?pphp
         class Animal {}
         class Dog extends Animal {}
         class Chihuahua extends Dog {}
@@ -201,7 +201,7 @@ final class OverloadOverrideTest extends TestCase
 
     public function testInterfaceMethodPlusOverload(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             interface I {
                 public function f(int $x): void;
             }
@@ -215,7 +215,7 @@ final class OverloadOverrideTest extends TestCase
 
     public function testInterfaceMethodCovarianceViolation(): void
 {
-    $this->assertError('<?php
+    $this->assertError('<?pphp
         class Animal {}
         class Dog extends Animal {}
         interface I {
@@ -231,7 +231,7 @@ final class OverloadOverrideTest extends TestCase
 
 public function testContravariancePerOverload(): void
 {
-    $this->check('<?php
+    $this->check('<?pphp
         class Animal {}
         class Dog extends Animal {}
         class Base {

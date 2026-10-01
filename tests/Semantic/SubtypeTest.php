@@ -26,13 +26,7 @@ final class SubtypeTest extends TestCase
     {
         $lexer = new Lexer();
         $parser = new Parser();
-        $tokens = $lexer->tokenize('<?php
-            class Animal {}
-            class Dog extends Animal {}
-            class Cat extends Animal {}
-            interface Pet {}
-            class Beagle extends Dog implements Pet {}
-        ');
+        $tokens = $lexer->tokenize('<?pphp class Animal {} class Dog extends Animal {} class Cat extends Animal {} interface Pet {} class Beagle extends Dog implements Pet {}');
         $ast = $parser->parse($tokens);
         $collector = new Collector();
         $globals = $collector->collect($ast, '<test>');

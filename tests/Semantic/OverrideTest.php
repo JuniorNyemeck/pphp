@@ -47,7 +47,7 @@ final class OverrideTest extends TestCase
 
     public function testSimpleOverride(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             class A { public function f(): void {} }
             class B extends A { public function f(): void {} }
         ');
@@ -56,7 +56,7 @@ final class OverrideTest extends TestCase
 
     public function testOverrideRenamedParamOk(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             class A { public function f(int $x): void {} }
             class B extends A { public function f(int $y): void {} }
         ');
@@ -69,7 +69,7 @@ final class OverrideTest extends TestCase
 
     public function testCovariantReturnOk(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             class Animal {}
             class Dog extends Animal {}
             class A { public function get(): Animal { return new Animal(); } }
@@ -80,7 +80,7 @@ final class OverrideTest extends TestCase
 
     public function testCovariantReturnViolation(): void
     {
-        $this->assertError('<?php
+        $this->assertError('<?pphp
             class Animal {}
             class Dog extends Animal {}
             class A { public function get(): Dog { return new Dog(); } }
@@ -94,7 +94,7 @@ final class OverrideTest extends TestCase
 
     public function testContravariantParamOk(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             class Animal {}
             class Dog extends Animal {}
             class A { public function f(Dog $d): void {} }
@@ -105,7 +105,7 @@ final class OverrideTest extends TestCase
 
  /*    public function testContravariantParamViolation(): void
 {
-    $this->assertError('<?php
+    $this->assertError('<?pphp
         class Animal {}
         class Dog extends Animal {}
         class Chihuahua extends Dog {}
@@ -120,7 +120,7 @@ final class OverrideTest extends TestCase
 
     public function testParamCountMismatch(): void
     {
-        $this->assertError('<?php
+        $this->assertError('<?pphp
             class A { public function f(int $x): void {} }
             class B extends A { public function f(int $x, int $y): void {} }
         ', 'même nombre de paramètres');
@@ -132,7 +132,7 @@ final class OverrideTest extends TestCase
 
     public function testPublicToProtectedForbidden(): void
     {
-        $this->assertError('<?php
+        $this->assertError('<?pphp
             class A { public function f(): void {} }
             class B extends A { protected function f(): void {} }
         ', 'Visibilité réduite');
@@ -140,7 +140,7 @@ final class OverrideTest extends TestCase
 
     public function testProtectedToPublicAllowed(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             class A { protected function f(): void {} }
             class B extends A { public function f(): void {} }
         ');
@@ -149,7 +149,7 @@ final class OverrideTest extends TestCase
 
     public function testProtectedToPrivateForbidden(): void
     {
-        $this->assertError('<?php
+        $this->assertError('<?pphp
             class A { protected function f(): void {} }
             class B extends A { private function f(): void {} }
         ', 'Visibilité réduite');
@@ -161,7 +161,7 @@ final class OverrideTest extends TestCase
 
     public function testOverrideFinalMethodForbidden(): void
     {
-        $this->assertError('<?php
+        $this->assertError('<?pphp
             class A { final public function f(): void {} }
             class B extends A { public function f(): void {} }
         ', "Impossible d'overrider la méthode finale");
@@ -173,7 +173,7 @@ final class OverrideTest extends TestCase
 
     public function testStaticMismatchForbidden(): void
     {
-        $this->assertError('<?php
+        $this->assertError('<?pphp
             class A { public static function f(): void {} }
             class B extends A { public function f(): void {} }
         ', 'doit être static');
@@ -181,7 +181,7 @@ final class OverrideTest extends TestCase
 
     public function testNonStaticMismatchForbidden(): void
     {
-        $this->assertError('<?php
+        $this->assertError('<?pphp
             class A { public function f(): void {} }
             class B extends A { public static function f(): void {} }
         ', 'doit être non-static');
@@ -193,7 +193,7 @@ final class OverrideTest extends TestCase
 
     public function testConcreteToAbstractForbidden(): void
     {
-        $this->assertError('<?php
+        $this->assertError('<?pphp
             class A { public function f(): void {} }
             abstract class B extends A { abstract public function f(): void; }
         ', 'ne peut pas devenir abstract');
@@ -201,7 +201,7 @@ final class OverrideTest extends TestCase
 
     public function testAbstractToConcreteOk(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             abstract class A { abstract public function f(): void; }
             class B extends A { public function f(): void {} }
         ');
@@ -210,7 +210,7 @@ final class OverrideTest extends TestCase
 
     public function testAbstractToAbstractOk(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             abstract class A { abstract public function f(): void; }
             abstract class B extends A { abstract public function f(): void; }
         ');
@@ -223,7 +223,7 @@ final class OverrideTest extends TestCase
 
     public function testPrivateParentNotOverride(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             class A { private function f(): void {} }
             class B extends A { private function f(): void {} }
         ');
@@ -236,7 +236,7 @@ final class OverrideTest extends TestCase
 
     public function testPropertyCovarianceOk(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             class Animal {}
             class Dog extends Animal {}
             class A { public Animal $pet; }
@@ -247,7 +247,7 @@ final class OverrideTest extends TestCase
 
     public function testPropertyCovarianceViolation(): void
     {
-        $this->assertError('<?php
+        $this->assertError('<?pphp
             class Animal {}
             class Dog extends Animal {}
             class A { public Dog $pet; }
@@ -257,7 +257,7 @@ final class OverrideTest extends TestCase
 
     public function testPropertyVisibilityReductionForbidden(): void
     {
-        $this->assertError('<?php
+        $this->assertError('<?pphp
             class A { public int $x; }
             class B extends A { protected int $x; }
         ', 'Visibilité réduite');
@@ -265,7 +265,7 @@ final class OverrideTest extends TestCase
 
     public function testPrivatePropertyNotOverride(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             class A { private int $x; }
             class B extends A { private int $x; }
         ');
@@ -278,7 +278,7 @@ final class OverrideTest extends TestCase
 
     public function testInterfaceImplementationRespectsCovariance(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             class Animal {}
             class Dog extends Animal {}
             interface I { public function get(): Animal; }
@@ -289,7 +289,7 @@ final class OverrideTest extends TestCase
 
     public function testInterfaceImplementationCovarianceViolation(): void
     {
-        $this->assertError('<?php
+        $this->assertError('<?pphp
             class Animal {}
             class Dog extends Animal {}
             interface I { public function get(): Dog; }
@@ -299,7 +299,7 @@ final class OverrideTest extends TestCase
 
     public function testContravariantParamViolation(): void
 {
-    $this->assertError('<?php
+    $this->assertError('<?pphp
         class Animal {}
         class Dog extends Animal {}
         class Chihuahua extends Dog {}

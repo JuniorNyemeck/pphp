@@ -1,2 +1,2 @@
-<?php
+<?pphp
 echo "Bonjour depuis PPHP !\n";

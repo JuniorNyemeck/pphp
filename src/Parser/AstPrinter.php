@@ -40,15 +40,15 @@ final class AstPrinter
         $pad = str_repeat('  ', $indent);
 
         switch (true) {
-                        case $stmt instanceof \PPhp\Parser\Node\Stmt\VarDeclStmt:
-                $lines[] = $pad . 'VarDecl(' . $this->typeToString($stmt->type) . ')';
-                foreach ($stmt->declarators as $d) {
-                    $lines[] = $pad . '  Declarator($' . $d['name'] . ')';
-                    if ($d['init'] !== null) {
-                        $this->printExpr($d['init'], $lines, $indent + 2);
-                    }
-                }
-                break;
+            case $stmt instanceof \PPhp\Parser\Node\Stmt\VarDeclStmt:
+    $lines[] = $pad . 'VarDecl(' . $this->typeToString($stmt->type) . ')';
+    foreach ($stmt->declarators as $d) {
+        $lines[] = $pad . '  Declarator($' . $d['name'] . ')';
+        if ($d['init'] !== null) {
+            $this->printExpr($d['init'], $lines, $indent + 2);
+        }
+    }
+    break;
 
             case $stmt instanceof \PPhp\Parser\Node\Stmt\FunctionDeclStmt:
                 $mods = $stmt->modifiers ? implode(' ', $stmt->modifiers) . ' ' : '';
@@ -166,8 +166,12 @@ final class AstPrinter
             case $stmt instanceof ForStmt:
                 $lines[] = $pad . 'For';
                 $lines[] = $pad . '  Init';
-                foreach ($stmt->init as $e) {
-                    $this->printExpr($e, $lines, $indent + 2);
+                if ($stmt->initDecl !== null) {
+                    $this->printStmt($stmt->initDecl, $lines, $indent + 2);
+                } else {
+                    foreach ($stmt->init as $e) {
+                        $this->printExpr($e, $lines, $indent + 2);
+                    }
                 }
                 $lines[] = $pad . '  Cond';
                 foreach ($stmt->cond as $e) {
@@ -179,30 +183,14 @@ final class AstPrinter
                 }
                 $lines[] = $pad . '  Body';
                 $this->printStmt($stmt->body, $lines, $indent + 2);
-                break;
+                break;    
+
 
             case $stmt instanceof \PPhp\Parser\Node\Stmt\ForeachStmt:
                 $lines[] = $pad . 'Foreach';
                 $lines[] = $pad . '  Iterable';
                 $this->printExpr($stmt->iterable, $lines, $indent + 2);
 
-                if ($stmt->key !== null && $stmt->keyType !== null) {
-                    $lines[] = $pad . '  Key (' . $this->typeToString($stmt->keyType) . ')';
-                    $this->printExpr($stmt->key, $lines, $indent + 2);
-                }
-                if ($stmt->valueType !== null) {
-                    $lines[] = $pad . '  Value (' . $this->typeToString($stmt->valueType) . ')';
-                    $this->printExpr($stmt->value, $lines, $indent + 2);
-                } else {
-                    $lines[] = $pad . '  Value';
-                    $this->printExpr($stmt->value, $lines, $indent + 2);
-                }
-                $lines[] = $pad . '  Body';
-                $this->printStmt($stmt->body, $lines, $indent + 2);
-                break;
-                $lines[] = $pad . 'Foreach';
-                $lines[] = $pad . '  Iterable';
-                $this->printExpr($stmt->iterable, $lines, $indent + 2);
                 if ($stmt->key !== null && $stmt->keyType !== null) {
                     $lines[] = $pad . '  Key (' . $this->typeToString($stmt->keyType) . ')';
                     $this->printExpr($stmt->key, $lines, $indent + 2);

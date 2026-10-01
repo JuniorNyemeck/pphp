@@ -43,7 +43,7 @@ final class Parser2bTest extends TestCase
         Body
           Block
     TXT;
-    $this->assertAst($expected, '<?php foreach ($arr as int $v) {}');
+    $this->assertAst($expected, '<?pphp foreach ($arr as int $v) {}');
 }
 
 
@@ -59,7 +59,7 @@ final class Parser2bTest extends TestCase
         Body
           Block
     TXT;
-    $this->assertAst($expected, '<?php foreach ($arr as int $v) {}');
+    $this->assertAst($expected, '<?pphp foreach ($arr as int $v) {}');
 }
 
 public function testForeachWithKeyAndType(): void
@@ -76,12 +76,12 @@ public function testForeachWithKeyAndType(): void
         Body
           Block
     TXT;
-    $this->assertAst($expected, '<?php foreach ($arr as int $k => string $v) {}');
+    $this->assertAst($expected, '<?pphp foreach ($arr as int $k => string $v) {}');
 }
 
 public function testForeachMissingTypeIsError(): void
 {
-    $this->assertParseError('<?php foreach ($arr as $v) {}', 'Type obligatoire');
+    $this->assertParseError('<?pphp foreach ($arr as $v) {}', 'Type obligatoire');
 }
 
 
@@ -115,7 +115,7 @@ public function testForeachMissingTypeIsError(): void
           VarDecl(int)
             Declarator($a)
         TXT;
-        $this->assertAst($expected, '<?php int $a;');
+        $this->assertAst($expected, '<?pphp int $a;');
     }
 
     public function testTypedVarDeclWithInit(): void
@@ -126,7 +126,7 @@ public function testForeachMissingTypeIsError(): void
             Declarator($a)
               Literal(int, 5)
         TXT;
-        $this->assertAst($expected, '<?php int $a = 5;');
+        $this->assertAst($expected, '<?pphp int $a = 5;');
     }
 
     public function testTypedVarDeclMultiple(): void
@@ -139,7 +139,7 @@ public function testForeachMissingTypeIsError(): void
               Literal(int, 2)
             Declarator($c)
         TXT;
-        $this->assertAst($expected, '<?php int $a, $b = 2, $c;');
+        $this->assertAst($expected, '<?pphp int $a, $b = 2, $c;');
     }
 
     public function testArrayType(): void
@@ -149,7 +149,7 @@ public function testForeachMissingTypeIsError(): void
           VarDecl(string[])
             Declarator($keys)
         TXT;
-        $this->assertAst($expected, '<?php string[] $keys;');
+        $this->assertAst($expected, '<?pphp string[] $keys;');
     }
 
     public function testNestedArrayType(): void
@@ -159,7 +159,7 @@ public function testForeachMissingTypeIsError(): void
           VarDecl(int[][])
             Declarator($m)
         TXT;
-        $this->assertAst($expected, '<?php int[][] $m;');
+        $this->assertAst($expected, '<?pphp int[][] $m;');
     }
 
     public function testNullableType(): void
@@ -169,7 +169,7 @@ public function testForeachMissingTypeIsError(): void
           VarDecl(?string)
             Declarator($s)
         TXT;
-        $this->assertAst($expected, '<?php ?string $s;');
+        $this->assertAst($expected, '<?pphp ?string $s;');
     }
 
     public function testUnionType(): void
@@ -179,7 +179,7 @@ public function testForeachMissingTypeIsError(): void
           VarDecl(int|string)
             Declarator($x)
         TXT;
-        $this->assertAst($expected, '<?php int|string $x;');
+        $this->assertAst($expected, '<?pphp int|string $x;');
     }
 
     public function testClassType(): void
@@ -189,7 +189,7 @@ public function testForeachMissingTypeIsError(): void
           VarDecl(Foo)
             Declarator($f)
         TXT;
-        $this->assertAst($expected, '<?php Foo $f;');
+        $this->assertAst($expected, '<?pphp Foo $f;');
     }
 
     public function testQualifiedClassType(): void
@@ -199,7 +199,7 @@ public function testForeachMissingTypeIsError(): void
           VarDecl(\Foo\Bar)
             Declarator($f)
         TXT;
-        $this->assertAst($expected, '<?php \\Foo\\Bar $f;');
+        $this->assertAst($expected, '<?pphp \\Foo\\Bar $f;');
     }
 
     public function testDeclarationWithExpression(): void
@@ -212,7 +212,7 @@ public function testForeachMissingTypeIsError(): void
                 Literal(int, 1)
                 Literal(int, 2)
         TXT;
-        $this->assertAst($expected, '<?php int $a = 1 + 2;');
+        $this->assertAst($expected, '<?pphp int $a = 1 + 2;');
     }
 
     // =========================================================================
@@ -228,7 +228,7 @@ public function testForeachMissingTypeIsError(): void
             Body
               Block
         TXT;
-        $this->assertAst($expected, '<?php function f(): void {}');
+        $this->assertAst($expected, '<?pphp function f(): void {}');
     }
 
     public function testFunctionWithParams(): void
@@ -244,7 +244,7 @@ public function testForeachMissingTypeIsError(): void
                 Return
                   Var($x)
         TXT;
-        $this->assertAst($expected, '<?php function f(int $x, string $y): int { return $x; }');
+        $this->assertAst($expected, '<?pphp function f(int $x, string $y): int { return $x; }');
     }
 
     public function testFunctionWithDefault(): void
@@ -258,7 +258,7 @@ public function testForeachMissingTypeIsError(): void
             Body
               Block
         TXT;
-        $this->assertAst($expected, '<?php function f(int $x = 5): void {}');
+        $this->assertAst($expected, '<?pphp function f(int $x = 5): void {}');
     }
 
     public function testFunctionWithVariadic(): void
@@ -271,7 +271,7 @@ public function testForeachMissingTypeIsError(): void
             Body
               Block
         TXT;
-        $this->assertAst($expected, '<?php function f(int ...$nums): void {}');
+        $this->assertAst($expected, '<?pphp function f(int ...$nums): void {}');
     }
 
     public function testFunctionWithByRef(): void
@@ -284,18 +284,18 @@ public function testForeachMissingTypeIsError(): void
             Body
               Block
         TXT;
-        $this->assertAst($expected, '<?php function f(int &$x): void {}');
+        $this->assertAst($expected, '<?pphp function f(int &$x): void {}');
     }
 
     public function testFunctionMissingParamType(): void
     {
-        $this->assertParseError('<?php function f($x): void {}', 'Type de paramètre obligatoire');
+        $this->assertParseError('<?pphp function f($x): void {}', 'Type de paramètre obligatoire');
     }
 
     public function testFunctionMissingReturnType(): void
 {
     $this->assertParseError(
-        '<?php function f(int $x) {}',
+        '<?pphp function f(int $x) {}',
         'Type de retour obligatoire pour la fonction'
     );
 }
@@ -310,7 +310,7 @@ public function testForeachMissingTypeIsError(): void
         Program
           ClassDecl(Foo)
         TXT;
-        $this->assertAst($expected, '<?php class Foo {}');
+        $this->assertAst($expected, '<?pphp class Foo {}');
     }
 
     public function testClassExtends(): void
@@ -319,7 +319,7 @@ public function testForeachMissingTypeIsError(): void
         Program
           ClassDecl(Foo extends Bar)
         TXT;
-        $this->assertAst($expected, '<?php class Foo extends Bar {}');
+        $this->assertAst($expected, '<?pphp class Foo extends Bar {}');
     }
 
     public function testClassImplements(): void
@@ -328,7 +328,7 @@ public function testForeachMissingTypeIsError(): void
         Program
           ClassDecl(Foo implements I1, I2)
         TXT;
-        $this->assertAst($expected, '<?php class Foo implements I1, I2 {}');
+        $this->assertAst($expected, '<?pphp class Foo implements I1, I2 {}');
     }
 
     public function testInterface(): void
@@ -337,7 +337,7 @@ public function testForeachMissingTypeIsError(): void
         Program
           InterfaceDecl(I)
         TXT;
-        $this->assertAst($expected, '<?php interface I {}');
+        $this->assertAst($expected, '<?pphp interface I {}');
     }
 
     public function testClassWithProperty(): void
@@ -348,7 +348,7 @@ public function testForeachMissingTypeIsError(): void
             PropertyDecl(public int)
               Declarator($x)
         TXT;
-        $this->assertAst($expected, '<?php class Foo { public int $x; }');
+        $this->assertAst($expected, '<?pphp class Foo { public int $x; }');
     }
 
     public function testClassWithMethod(): void
@@ -364,7 +364,7 @@ public function testForeachMissingTypeIsError(): void
                     PropertyAccess(->x)
                       This
         TXT;
-        $this->assertAst($expected, '<?php class Foo { public function getX(): int { return $this->x; } }');
+        $this->assertAst($expected, '<?pphp class Foo { public function getX(): int { return $this->x; } }');
     }
 
     public function testClassWithAbstractMethod(): void
@@ -377,7 +377,7 @@ public function testForeachMissingTypeIsError(): void
               Body
                 <abstract>
         TXT;
-        $this->assertAst($expected, '<?php class Foo { public abstract function m(): void; }');
+        $this->assertAst($expected, '<?pphp class Foo { public abstract function m(): void; }');
     }
 
     public function testInterfaceWithMethodSignature(): void
@@ -391,7 +391,7 @@ public function testForeachMissingTypeIsError(): void
               Body
                 <abstract>
         TXT;
-        $this->assertAst($expected, '<?php interface I { public function m(int $x): int; }');
+        $this->assertAst($expected, '<?pphp interface I { public function m(int $x): int; }');
     }
 
     // =========================================================================
@@ -413,17 +413,17 @@ public function testForeachMissingTypeIsError(): void
                         This
                       Literal(int, 1)
         TXT;
-        $this->assertAst($expected, '<?php class Foo { public function f(): void { $this->x = 1; } }');
+        $this->assertAst($expected, '<?pphp class Foo { public function f(): void { $this->x = 1; } }');
     }
 
     public function testThisReservedAsVariable(): void
     {
-        $this->assertParseError('<?php int $this;', "'\$this' est réservé");
+        $this->assertParseError('<?pphp int $this;', "'\$this' est réservé");
     }
 
     public function testThisReservedAsParam(): void
     {
-        $this->assertParseError('<?php function f(int $this): void {}', "'\$this' est réservé");
+        $this->assertParseError('<?pphp function f(int $this): void {}', "'\$this' est réservé");
     }
 
     // =========================================================================
@@ -438,7 +438,7 @@ public function testForeachMissingTypeIsError(): void
             Instanceof(Foo)
               Var($x)
         TXT;
-        $this->assertAst($expected, '<?php $x instanceof Foo;');
+        $this->assertAst($expected, '<?pphp $x instanceof Foo;');
     }
 
     public function testInstanceofInCondition(): void
@@ -452,6 +452,29 @@ public function testForeachMissingTypeIsError(): void
             Then
               Block
         TXT;
-        $this->assertAst($expected, '<?php if ($x instanceof Foo) {}');
+        $this->assertAst($expected, '<?pphp if ($x instanceof Foo) {}');
     }
+
+    public function testForWithTypedInit(): void
+{
+    $expected = <<<'TXT'
+    Program
+      For
+        Init
+          VarDecl(int)
+            Declarator($i)
+              Literal(int, 0)
+        Cond
+          Binary(<)
+            Var($i)
+            Literal(int, 10)
+        Step
+          PostIncDec(++)
+            Var($i)
+        Body
+          Block
+            Break
+    TXT;
+    $this->assertAst($expected, '<?pphp for (int $i = 0; $i < 10; $i++) { break; }');
+}
 }

@@ -7,7 +7,7 @@ namespace PPhp\Lexer;
 enum TokenType: string
 {
     // === Structure ===
-    case OpenTag = '<?php';
+    case OpenTag = '<?pphp';
     case CloseTag = '?>';
 
     // === Littéraux ===

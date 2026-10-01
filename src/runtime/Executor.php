@@ -42,7 +42,8 @@ final class Executor
 
         // On retire une éventuelle balise ouvrante du code généré
         // pour l'insérer proprement après le préambule.
-        $body = $phpCode;
+                       $body = $phpCode;
+        // Le codegen produit toujours <?php en tête.
         if (str_starts_with($body, '<?php')) {
             $body = substr($body, 5);
         }

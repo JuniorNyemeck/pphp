@@ -43,7 +43,7 @@ final class NarrowingTest extends TestCase
 
     public function testNarrowAfterNotNull(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             ?int $x = null;
             if ($x !== null) {
                 int $y = $x;
@@ -54,7 +54,7 @@ final class NarrowingTest extends TestCase
 
     public function testNarrowElseWithNull(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             ?int $x = null;
             if ($x === null) {
                 // $x est null
@@ -67,7 +67,7 @@ final class NarrowingTest extends TestCase
 
     public function testNarrowScopeIsLimitedToBlock(): void
     {
-        $this->assertError('<?php
+        $this->assertError('<?pphp
             ?int $x = null;
             if ($x !== null) {
                 int $y = $x;
@@ -78,7 +78,7 @@ final class NarrowingTest extends TestCase
 
     public function testNarrowInstanceof(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             class Animal {}
             class Dog extends Animal { public function bark(): string { return "woof"; } }
             Animal $a = new Animal();
@@ -91,7 +91,7 @@ final class NarrowingTest extends TestCase
 
     public function testNarrowInstanceofAllowsAccess(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             class Animal {}
             class Dog extends Animal { public string $name; }
             Animal $a = new Animal();
@@ -104,7 +104,7 @@ final class NarrowingTest extends TestCase
 
     public function testNarrowInAndRhs(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             ?int $x = null;
             if ($x !== null && $x > 0) {
                 int $y = $x;
@@ -115,7 +115,7 @@ final class NarrowingTest extends TestCase
 
     public function testNarrowInAndRhsBoth(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             ?int $x = null;
             ?int $y = null;
             if ($x !== null && $y !== null) {
@@ -128,7 +128,7 @@ final class NarrowingTest extends TestCase
 
     public function testNarrowNegation(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             ?int $x = null;
             if (!($x === null)) {
                 int $y = $x;
@@ -139,7 +139,7 @@ final class NarrowingTest extends TestCase
 
     public function testNarrowElseif(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             ?int $x = null;
             if ($x === null) {
                 // null
@@ -152,7 +152,7 @@ final class NarrowingTest extends TestCase
 
     public function testNarrowInWhileBody(): void
 {
-    $this->check('<?php
+    $this->check('<?pphp
         ?int $x = null;
         while ($x !== null) {
             int $y = $x;
@@ -163,7 +163,7 @@ final class NarrowingTest extends TestCase
 
     public function testNarrowInstanceofInheritsMethods(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             class Animal { public function breathe(): void {} }
             class Dog extends Animal { public function bark(): void {} }
             Animal $a = new Animal();
@@ -177,7 +177,7 @@ final class NarrowingTest extends TestCase
 
     public function testNarrowUnionRemoveNull(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             int|string|null $x = null;
             if ($x !== null) {
                 int|string $y = $x;
@@ -188,7 +188,7 @@ final class NarrowingTest extends TestCase
 
     public function testNarrowUnionRemoveNullRejectsNull(): void
     {
-        $this->assertError('<?php
+        $this->assertError('<?pphp
             int|string|null $x = null;
             if ($x !== null) {
                 int $y = $x;

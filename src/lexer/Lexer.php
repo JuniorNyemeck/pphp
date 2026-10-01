@@ -10,7 +10,7 @@ use PPhp\Error\LexerError;
  * Tokenise un programme PPHP.
  *
  * Contraintes :
- *  - Tout le fichier doit être à l'intérieur de <?php ... ?>
+ *  - Tout le fichier doit être à l'intérieur de <?pphp ... ?>
  *  - Aucun contenu hors balises (autre que des espaces) n'est autorisé
  *  - .5 (sans 0 initial) est interdit pour lever l'ambiguïté avec l'opérateur .
  *  - Les commentaires sont ignorés (non émis comme tokens)
@@ -134,15 +134,15 @@ final class Lexer
     {
         $this->skipWhitespaceOnlyBeforeOpenTag();
 
-        if (!$this->startsWith('<?php')) {
-            $this->error("Le fichier doit commencer par '<?php' (aucun contenu hors balises autorisé)");
+        if (!$this->startsWith('<?pphp')) {
+            $this->error("Le fichier doit commencer par '<?pphp' (aucun contenu hors balises autorisé)");
         }
         $openStart = $this->pos;
-        $this->advance(5);
+        $this->advance(6);
         if (!$this->atEnd() && !$this->isWhitespace($this->current())) {
-            $this->error("Un espace ou un retour à la ligne est requis après '<?php'");
+            $this->error("Un espace ou un retour à la ligne est requis après '<?pphp'");
         }
-        $this->emit(TokenType::OpenTag, '<?php', null, $openStart, $this->pos);
+        $this->emit(TokenType::OpenTag, '<?pphp', null, $openStart, $this->pos);
 
         while (!$this->atEnd()) {
             $this->skipWhitespaceAndComments();
@@ -544,12 +544,26 @@ final class Lexer
         }
     }
 
-    private function skipWhitespaceOnlyBeforeOpenTag(): void
+        private function skipWhitespaceOnlyBeforeOpenTag(): void
     {
+        // BOM UTF-8
         if (substr($this->source, 0, 3) === "\xEF\xBB\xBF") {
             $this->pos = 3;
             $this->column = 1;
         }
+
+        // Shebang en première ligne
+        if (substr($this->source, $this->pos, 2) === '#!') {
+            $newline = strpos($this->source, "\n", $this->pos);
+            if ($newline === false) {
+                $this->pos = strlen($this->source);
+            } else {
+                $this->pos = $newline + 1;
+                $this->line++;
+                $this->column = 1;
+            }
+        }
+
         $this->skipWhitespaceOnly();
     }
 

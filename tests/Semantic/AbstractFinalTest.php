@@ -50,14 +50,14 @@ final class AbstractFinalTest extends TestCase
     public function testFinalClassCannotBeExtended(): void
     {
         $this->assertError(
-            '<?php final class A {} class B extends A {}',
+            '<?pphp final class A {} class B extends A {}',
             "Impossible d'étendre la classe finale"
         );
     }
 
     public function testFinalClassAloneOk(): void
     {
-        $this->check('<?php final class A {}');
+        $this->check('<?pphp final class A {}');
         $this->assertTrue(true);
     }
 
@@ -68,21 +68,21 @@ final class AbstractFinalTest extends TestCase
     public function testAbstractClassCannotBeInstantiated(): void
 {
     $this->assertError(
-        '<?php abstract class A {} new A();',
+        '<?pphp abstract class A {} new A();',
         "Impossible d'instancier la classe abstraite"
     );
 }
 
     public function testAbstractClassOkWithoutNew(): void
     {
-        $this->check('<?php abstract class A {}');
+        $this->check('<?pphp abstract class A {}');
         $this->assertTrue(true);
     }
 
     public function testAbstractAndFinalOnClassForbidden(): void
     {
         $this->assertError(
-            '<?php abstract final class A {}',
+            '<?pphp abstract final class A {}',
             "ne peut pas être à la fois 'abstract' et 'final'"
         );
     }
@@ -93,14 +93,14 @@ final class AbstractFinalTest extends TestCase
 
     public function testAbstractMethodInAbstractClassOk(): void
     {
-        $this->check('<?php abstract class A { abstract public function f(): void; }');
+        $this->check('<?pphp abstract class A { abstract public function f(): void; }');
         $this->assertTrue(true);
     }
 
     public function testAbstractMethodInConcreteClassForbidden(): void
     {
         $this->assertError(
-            '<?php class A { abstract public function f(): void; }',
+            '<?pphp class A { abstract public function f(): void; }',
             "doit être dans une classe abstract ou une interface"
         );
     }
@@ -108,7 +108,7 @@ final class AbstractFinalTest extends TestCase
     public function testAbstractAndFinalOnMethodForbidden(): void
     {
         $this->assertError(
-            '<?php abstract class A { abstract final public function f(): void; }',
+            '<?pphp abstract class A { abstract final public function f(): void; }',
             "ne peut pas être à la fois 'abstract' et 'final'"
         );
     }
@@ -120,7 +120,7 @@ final class AbstractFinalTest extends TestCase
     public function testConcreteClassMustImplementAbstractMethod(): void
     {
         $this->assertError(
-            '<?php
+            '<?pphp
                 abstract class A { abstract public function f(): void; }
                 class B extends A {}
             ',
@@ -130,7 +130,7 @@ final class AbstractFinalTest extends TestCase
 
     public function testConcreteClassImplementingAbstractMethodOk(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             abstract class A { abstract public function f(): void; }
             class B extends A {
                 public function f(): void {}
@@ -141,7 +141,7 @@ final class AbstractFinalTest extends TestCase
 
     public function testAbstractClassCanLeaveAbstractMethodsUnimplemented(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             abstract class A { abstract public function f(): void; }
             abstract class B extends A {}
         ');
@@ -150,7 +150,7 @@ final class AbstractFinalTest extends TestCase
 
     public function testTransitiveAbstractImplementation(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             abstract class A { abstract public function f(): void; }
             abstract class B extends A {}
             class C extends B {
@@ -166,7 +166,7 @@ final class AbstractFinalTest extends TestCase
 
     public function testInterfaceMethodImplementedByClass(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             interface I { public function f(): void; }
             class A implements I {
                 public function f(): void {}
@@ -178,7 +178,7 @@ final class AbstractFinalTest extends TestCase
     public function testClassNotImplementingInterfaceMethodIsError(): void
     {
         $this->assertError(
-            '<?php
+            '<?pphp
                 interface I { public function f(): void; }
                 class A implements I {}
             ',
@@ -189,14 +189,14 @@ final class AbstractFinalTest extends TestCase
     public function testInterfaceCannotHaveProperties(): void
     {
         $this->assertError(
-            '<?php interface I { public int $x; }',
+            '<?pphp interface I { public int $x; }',
             "Une interface ne peut pas déclarer de propriétés"
         );
     }
 
     public function testInterfaceInheritance(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             interface I { public function f(): void; }
             interface J extends I {}
             abstract class A implements J {}
@@ -206,7 +206,7 @@ final class AbstractFinalTest extends TestCase
 
     public function testInterfaceInheritanceImplementation(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             interface I { public function f(): void; }
             interface J extends I { public function g(): void; }
             class A implements J {
@@ -219,7 +219,7 @@ final class AbstractFinalTest extends TestCase
 
     public function testTransitiveInterfaceImplementation(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             interface I { public function f(): void; }
             class A implements I {
                 public function f(): void {}
@@ -235,7 +235,7 @@ final class AbstractFinalTest extends TestCase
 
     public function testAbstractClassImplementsInterfaceWithoutImplementing(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             interface I { public function f(): void; }
             abstract class A implements I {}
         ');
@@ -244,7 +244,7 @@ final class AbstractFinalTest extends TestCase
 
     public function testMultipleInterfaces(): void
     {
-        $this->check('<?php
+        $this->check('<?pphp
             interface I { public function f(): void; }
             interface J { public function g(): void; }
             class A implements I, J {
@@ -258,7 +258,7 @@ final class AbstractFinalTest extends TestCase
     public function testMultipleInterfacesOneMissing(): void
     {
         $this->assertError(
-            '<?php
+            '<?pphp
                 interface I { public function f(): void; }
                 interface J { public function g(): void; }
                 class A implements I, J {

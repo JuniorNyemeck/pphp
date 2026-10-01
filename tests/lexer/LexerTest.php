@@ -65,7 +65,7 @@ final class LexerTest extends TestCase
 
     public function testEmptyProgram(): void
     {
-        $this->assertTokens('<?php ', [TokenType::OpenTag]);
+        $this->assertTokens('<?pphp ', [TokenType::OpenTag]);
     }
 
     public function testOpenTagRequired(): void
@@ -75,17 +75,17 @@ final class LexerTest extends TestCase
 
     public function testContentOutsideTagsForbidden(): void
     {
-        $this->assertLexError("<?php echo 1; ?>\n<p>hello</p>", 'hors balises');
+        $this->assertLexError("<?pphp echo 1; ?>\n<p>hello</p>", 'hors balises');
     }
 
     public function testSpaceRequiredAfterOpenTag(): void
     {
-        $this->assertLexError('<?phpfoo', "espace ou un retour à la ligne");
+        $this->assertLexError('<?pphpfoo', "espace ou un retour à la ligne");
     }
 
     public function testContentOutsideTagsBeforePhpForbidden(): void
     {
-        $this->assertLexError('hello<?php ', 'doit commencer par');
+        $this->assertLexError('hello<?pphp ', 'doit commencer par');
     }
 
     // =========================================================================
@@ -94,7 +94,7 @@ final class LexerTest extends TestCase
 
     public function testSimpleVariable(): void
     {
-        $tokens = $this->assertTokens('<?php $foo', [
+        $tokens = $this->assertTokens('<?pphp $foo', [
             TokenType::OpenTag,
             TokenType::Variable,
         ]);
@@ -104,7 +104,7 @@ final class LexerTest extends TestCase
 
     public function testVariableWithDigitsAndUnderscore(): void
     {
-        $tokens = $this->assertTokens('<?php $foo_bar123', [
+        $tokens = $this->assertTokens('<?pphp $foo_bar123', [
             TokenType::OpenTag,
             TokenType::Variable,
         ]);
@@ -113,12 +113,12 @@ final class LexerTest extends TestCase
 
     public function testDollarWithoutName(): void
     {
-        $this->assertLexError('<?php $ ', 'Nom de variable attendu');
+        $this->assertLexError('<?pphp $ ', 'Nom de variable attendu');
     }
 
     public function testIdentifier(): void
     {
-        $tokens = $this->assertTokens('<?php myFunc', [
+        $tokens = $this->assertTokens('<?pphp myFunc', [
             TokenType::OpenTag,
             TokenType::Identifier,
         ]);
@@ -131,7 +131,7 @@ final class LexerTest extends TestCase
 
     public function testKeywords(): void
     {
-        $this->assertTokens('<?php if else while function class return', [
+        $this->assertTokens('<?pphp if else while function class return', [
             TokenType::OpenTag,
             TokenType::KwIf,
             TokenType::KwElse,
@@ -144,7 +144,7 @@ final class LexerTest extends TestCase
 
     public function testTypeKeywords(): void
     {
-        $this->assertTokens('<?php int float bool string', [
+        $this->assertTokens('<?pphp int float bool string', [
             TokenType::OpenTag,
             TokenType::KwInt,
             TokenType::KwFloat,
@@ -155,7 +155,7 @@ final class LexerTest extends TestCase
 
     public function testKeywordsAreCaseInsensitive(): void
     {
-        $this->assertTokens('<?php IF ELSE Return', [
+        $this->assertTokens('<?pphp IF ELSE Return', [
             TokenType::OpenTag,
             TokenType::KwIf,
             TokenType::KwElse,
@@ -165,7 +165,7 @@ final class LexerTest extends TestCase
 
     public function testTrueFalseNullValues(): void
     {
-        $tokens = $this->assertTokens('<?php true false null', [
+        $tokens = $this->assertTokens('<?pphp true false null', [
             TokenType::OpenTag,
             TokenType::KwTrue,
             TokenType::KwFalse,
@@ -182,7 +182,7 @@ final class LexerTest extends TestCase
 
     public function testIntLiteral(): void
     {
-        $tokens = $this->assertTokens('<?php 42', [
+        $tokens = $this->assertTokens('<?pphp 42', [
             TokenType::OpenTag,
             TokenType::IntLiteral,
         ]);
@@ -191,7 +191,7 @@ final class LexerTest extends TestCase
 
     public function testIntWithUnderscores(): void
     {
-        $tokens = $this->assertTokens('<?php 1_000_000', [
+        $tokens = $this->assertTokens('<?pphp 1_000_000', [
             TokenType::OpenTag,
             TokenType::IntLiteral,
         ]);
@@ -200,7 +200,7 @@ final class LexerTest extends TestCase
 
     public function testFloatLiteral(): void
     {
-        $tokens = $this->assertTokens('<?php 3.14', [
+        $tokens = $this->assertTokens('<?pphp 3.14', [
             TokenType::OpenTag,
             TokenType::FloatLiteral,
         ]);
@@ -209,7 +209,7 @@ final class LexerTest extends TestCase
 
     public function testFloatWithLeadingZero(): void
     {
-        $tokens = $this->assertTokens('<?php 0.5', [
+        $tokens = $this->assertTokens('<?pphp 0.5', [
             TokenType::OpenTag,
             TokenType::FloatLiteral,
         ]);
@@ -219,7 +219,7 @@ final class LexerTest extends TestCase
     public function testDotFiveIsLexedAsIntDotFive(): void
     {
         // .5 doit être lexé comme . puis 5, et c'est au parser de rejeter.
-        $tokens = $this->assertTokens('<?php .5', [
+        $tokens = $this->assertTokens('<?pphp .5', [
             TokenType::OpenTag,
             TokenType::Dot,
             TokenType::IntLiteral,
@@ -229,7 +229,7 @@ final class LexerTest extends TestCase
 
     public function testHexLiteral(): void
     {
-        $tokens = $this->assertTokens('<?php 0xFF', [
+        $tokens = $this->assertTokens('<?pphp 0xFF', [
             TokenType::OpenTag,
             TokenType::IntLiteral,
         ]);
@@ -238,7 +238,7 @@ final class LexerTest extends TestCase
 
     public function testBinaryLiteral(): void
     {
-        $tokens = $this->assertTokens('<?php 0b1010', [
+        $tokens = $this->assertTokens('<?pphp 0b1010', [
             TokenType::OpenTag,
             TokenType::IntLiteral,
         ]);
@@ -247,7 +247,7 @@ final class LexerTest extends TestCase
 
     public function testOctalLiteral(): void
     {
-        $tokens = $this->assertTokens('<?php 0o17', [
+        $tokens = $this->assertTokens('<?pphp 0o17', [
             TokenType::OpenTag,
             TokenType::IntLiteral,
         ]);
@@ -256,7 +256,7 @@ final class LexerTest extends TestCase
 
     public function testScientificNotation(): void
     {
-        $tokens = $this->assertTokens('<?php 1.5e3', [
+        $tokens = $this->assertTokens('<?pphp 1.5e3', [
             TokenType::OpenTag,
             TokenType::FloatLiteral,
         ]);
@@ -265,7 +265,7 @@ final class LexerTest extends TestCase
 
     public function testScientificNotationWithSign(): void
     {
-        $tokens = $this->assertTokens('<?php 1e-3', [
+        $tokens = $this->assertTokens('<?pphp 1e-3', [
             TokenType::OpenTag,
             TokenType::FloatLiteral,
         ]);
@@ -278,7 +278,7 @@ final class LexerTest extends TestCase
 
     public function testSimpleString(): void
     {
-        $tokens = $this->assertTokens('<?php "hello"', [
+        $tokens = $this->assertTokens('<?pphp "hello"', [
             TokenType::OpenTag,
             TokenType::StringLiteral,
         ]);
@@ -288,7 +288,7 @@ final class LexerTest extends TestCase
 
     public function testSingleQuoteString(): void
     {
-        $tokens = $this->assertTokens("<?php 'hello'", [
+        $tokens = $this->assertTokens("<?pphp 'hello'", [
             TokenType::OpenTag,
             TokenType::StringLiteral,
         ]);
@@ -297,7 +297,7 @@ final class LexerTest extends TestCase
 
     public function testStringWithEscapedQuote(): void
     {
-        $tokens = $this->assertTokens('<?php "he said \\"hi\\""', [
+        $tokens = $this->assertTokens('<?pphp "he said \\"hi\\""', [
             TokenType::OpenTag,
             TokenType::StringLiteral,
         ]);
@@ -307,7 +307,7 @@ final class LexerTest extends TestCase
 
     public function testUnterminatedString(): void
     {
-        $this->assertLexError('<?php "hello', 'Chaîne non terminée');
+        $this->assertLexError('<?pphp "hello', 'Chaîne non terminée');
     }
 
     // =========================================================================
@@ -316,7 +316,7 @@ final class LexerTest extends TestCase
 
     public function testArithmeticOperators(): void
     {
-        $this->assertTokens('<?php + - * / % **', [
+        $this->assertTokens('<?pphp + - * / % **', [
             TokenType::OpenTag,
             TokenType::Plus,
             TokenType::Minus,
@@ -329,7 +329,7 @@ final class LexerTest extends TestCase
 
     public function testComparisonOperators(): void
     {
-        $this->assertTokens('<?php == === != !== < <= > >= <=>', [
+        $this->assertTokens('<?pphp == === != !== < <= > >= <=>', [
             TokenType::OpenTag,
             TokenType::Equal,
             TokenType::Identical,
@@ -345,7 +345,7 @@ final class LexerTest extends TestCase
 
     public function testArrowAndDot(): void
     {
-        $this->assertTokens('<?php -> . ?-> ::', [
+        $this->assertTokens('<?pphp -> . ?-> ::', [
             TokenType::OpenTag,
             TokenType::Arrow,
             TokenType::Dot,
@@ -357,7 +357,7 @@ final class LexerTest extends TestCase
     public function testLongestMatchWins(): void
     {
         // === doit être un seul token, pas deux == puis =
-        $this->assertTokens('<?php ===', [
+        $this->assertTokens('<?pphp ===', [
             TokenType::OpenTag,
             TokenType::Identical,
         ]);
@@ -365,7 +365,7 @@ final class LexerTest extends TestCase
 
     public function testAssignments(): void
     {
-        $this->assertTokens('<?php = += -= *= /= .= %= **= ??=', [
+        $this->assertTokens('<?pphp = += -= *= /= .= %= **= ??=', [
             TokenType::OpenTag,
             TokenType::Assign,
             TokenType::PlusAssign,
@@ -381,7 +381,7 @@ final class LexerTest extends TestCase
 
     public function testNullCoalesceAndTernary(): void
     {
-        $this->assertTokens('<?php ?? ? :', [
+        $this->assertTokens('<?pphp ?? ? :', [
             TokenType::OpenTag,
             TokenType::NullCoalesce,
             TokenType::Question,
@@ -391,7 +391,7 @@ final class LexerTest extends TestCase
 
     public function testEllipsisAndDoubleArrow(): void
     {
-        $this->assertTokens('<?php ... =>', [
+        $this->assertTokens('<?pphp ... =>', [
             TokenType::OpenTag,
             TokenType::Ellipsis,
             TokenType::DoubleArrow,
@@ -400,7 +400,7 @@ final class LexerTest extends TestCase
 
     public function testIncrementDecrement(): void
     {
-        $this->assertTokens('<?php ++ --', [
+        $this->assertTokens('<?pphp ++ --', [
             TokenType::OpenTag,
             TokenType::Increment,
             TokenType::Decrement,
@@ -413,7 +413,7 @@ final class LexerTest extends TestCase
 
     public function testLineComment(): void
     {
-        $this->assertTokens("<?php // ceci est un commentaire\n42", [
+        $this->assertTokens("<?pphp // ceci est un commentaire\n42", [
             TokenType::OpenTag,
             TokenType::IntLiteral,
         ]);
@@ -421,7 +421,7 @@ final class LexerTest extends TestCase
 
     public function testHashComment(): void
     {
-        $this->assertTokens("<?php # commentaire\n42", [
+        $this->assertTokens("<?pphp # commentaire\n42", [
             TokenType::OpenTag,
             TokenType::IntLiteral,
         ]);
@@ -429,7 +429,7 @@ final class LexerTest extends TestCase
 
     public function testBlockComment(): void
     {
-        $this->assertTokens('<?php /* commentaire */ 42', [
+        $this->assertTokens('<?pphp /* commentaire */ 42', [
             TokenType::OpenTag,
             TokenType::IntLiteral,
         ]);
@@ -437,7 +437,7 @@ final class LexerTest extends TestCase
 
     public function testUnterminatedBlockComment(): void
     {
-        $this->assertLexError('<?php /* pas fini', 'Commentaire /* non terminé');
+        $this->assertLexError('<?pphp /* pas fini', 'Commentaire /* non terminé');
     }
 
     // =========================================================================
@@ -446,7 +446,7 @@ final class LexerTest extends TestCase
 
     public function testPositions(): void
     {
-        $tokens = $this->lexer->tokenize("<?php\n\$a = 1;\n\$b = 2;");
+        $tokens = $this->lexer->tokenize("<?pphp\n\$a = 1;\n\$b = 2;");
         // OpenTag @ 1:1, $a @ 2:1, = @ 2:4, 1 @ 2:6, ; @ 2:7,
         // $b @ 3:1, = @ 3:4, 2 @ 3:6, ; @ 3:7, Eof
         $this->assertSame(1, $tokens[0]->line);
@@ -468,7 +468,7 @@ final class LexerTest extends TestCase
 
     public function testUnexpectedCharacter(): void
     {
-        $this->assertLexError('<?php `', 'Caractère inattendu');
+        $this->assertLexError('<?pphp `', 'Caractère inattendu');
     }
 
     // =========================================================================
@@ -478,7 +478,7 @@ final class LexerTest extends TestCase
     public function testCompleteSnippet(): void
     {
         $source = <<<'PPHP'
-        <?php
+        <?pphp
         int $a = 5;
         int $b = $a + 3;
         function f(int $x): int {
@@ -503,7 +503,7 @@ final class LexerTest extends TestCase
 
     public function testDotWithoutSpaces(): void
     {
-        $tokens = $this->lexer->tokenize('<?php $a.$b');
+        $tokens = $this->lexer->tokenize('<?pphp $a.$b');
         // tokens : OpenTag, $a, ., $b, Eof
         $dot = $tokens[2];
         $this->assertSame(TokenType::Dot, $dot->type);
@@ -513,7 +513,7 @@ final class LexerTest extends TestCase
 
     public function testDotWithSpacesOnBothSides(): void
     {
-        $tokens = $this->lexer->tokenize('<?php $a . $b');
+        $tokens = $this->lexer->tokenize('<?pphp $a . $b');
         $dot = $tokens[2];
         $this->assertSame(TokenType::Dot, $dot->type);
         $this->assertTrue($dot->precededByWhitespace);
@@ -522,7 +522,7 @@ final class LexerTest extends TestCase
 
     public function testDotWithSpaceBeforeOnly(): void
     {
-        $tokens = $this->lexer->tokenize('<?php $a .$b');
+        $tokens = $this->lexer->tokenize('<?pphp $a .$b');
         $dot = $tokens[2];
         $this->assertTrue($dot->precededByWhitespace);
         $this->assertFalse($dot->followedByWhitespace);
@@ -530,7 +530,7 @@ final class LexerTest extends TestCase
 
     public function testDotWithSpaceAfterOnly(): void
     {
-        $tokens = $this->lexer->tokenize('<?php $a. $b');
+        $tokens = $this->lexer->tokenize('<?pphp $a. $b');
         $dot = $tokens[2];
         $this->assertFalse($dot->precededByWhitespace);
         $this->assertTrue($dot->followedByWhitespace);
@@ -538,7 +538,7 @@ final class LexerTest extends TestCase
 
         public function testWhitespaceFlagsOnArithmetic(): void
     {
-        $tokens = $this->lexer->tokenize('<?php 1 + 2');
+        $tokens = $this->lexer->tokenize('<?pphp 1 + 2');
         // OpenTag, 1, +, 2, Eof
         $this->assertTrue($tokens[2]->precededByWhitespace);
         $this->assertTrue($tokens[2]->followedByWhitespace);
