@@ -44,6 +44,9 @@ final class Executor
         // pour l'insérer proprement après le préambule.
                        $body = $phpCode;
         // Le codegen produit toujours <?php en tête.
+               $body = $phpCode;
+        // Le codegen produit toujours <?php en tête, on le retire pour
+        // l'insérer après le préambule.
         if (str_starts_with($body, '<?php')) {
             $body = substr($body, 5);
         }
@@ -113,7 +116,7 @@ final class Executor
      * Version minimale : on cherche les motifs "on line N" et on remplace
      * N par la ligne source correspondante.
      */
-    private function rewriteStderr(string $data, SourceMap $map): string
+        private function rewriteStderr(string $data, SourceMap $map): string
     {
         return preg_replace_callback(
             '/on line (\d+)/',

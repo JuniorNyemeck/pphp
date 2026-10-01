@@ -45,12 +45,8 @@ use PPhp\Parser\Node\Stmt\VarDeclStmt;
 use PPhp\Parser\Node\Stmt\WhileStmt;
 use PPhp\Parser\Node\TypeNode;
 use PPhp\Parser\Node\Expr\ThisExpr;
-use PPhp\Parser\Node\Expr\ArrayLiteralExpr;    
-
-
- 
- 
-
+use PPhp\Parser\Node\Expr\ArrayLiteralExpr;
+use PPhp\Parser\Node\Expr\ConstExpr;
 
 /**
  * Parser PPHP — étape 2a. 
@@ -700,9 +696,18 @@ $pairs = 0;
     {
         $t = $this->current();
  
-        if ($t->type === TokenType::Identifier) { 
+        if ($t->type === TokenType::Identifier) {
+            // Si suivi de '(' → appel de fonction (f(5))
+            // Sinon → constante (PHP_EOL, M_PI, ...)
             $this->advance();
-            return new VariableExpr($t->line, $t->column, (string) $t->value);
+            if ($this->check(TokenType::LParen)) {
+                // f(5) → CallExpr avec un callee virtuel
+                $callee = new VariableExpr($t->line, $t->column, (string) $t->value);
+                // ... la suite est gérée par parsePostfix, il faut retourner juste VariableExpr
+                return $callee;
+            }
+            // Constante
+            return new ConstExpr($t->line, $t->column, (string) $t->value);
         }
         if ($t->type === TokenType::KwThis) {
             $this->advance();

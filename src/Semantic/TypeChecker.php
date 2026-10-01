@@ -51,10 +51,8 @@ use PPhp\Semantic\Type\Type;
 use PPhp\Semantic\Type\TypeFactory;
 use PPhp\Semantic\Type\UnionType;
 use PPhp\Semantic\Type\VoidType;
-use PPhp\Parser\Node\Expr\ArrayLiteralExpr;  
-
- 
- 
+use PPhp\Parser\Node\Expr\ArrayLiteralExpr;
+use PPhp\Parser\Node\Expr\ConstExpr;
 
 /**
  * Passe 2 : vérification des corps de fonctions et méthodes,
@@ -71,6 +69,13 @@ final class TypeChecker
     private readonly OverloadResolver $overloads;
 
     private string $file = '<input>';
+
+        /**
+     * Table des appels résolus : clé "line:column" → MethodInfo|FunctionInfo.
+     *
+     * @var array<string, MethodInfo|FunctionInfo>
+     */
+    private array $resolvedCalls = [];    
 
     public function __construct(
         GlobalScope $globals,
@@ -91,9 +96,25 @@ final class TypeChecker
         $this->narrowing = new NarrowingHelper();
         $this->overloads = new OverloadResolver($this->subtypes);
     }
+
+        /**
+     * @return array<string, MethodInfo|FunctionInfo>
+     */
+    public function resolvedCalls(): array
+    {
+        return $this->resolvedCalls;
+    }
+
+        private function keyOf(int $line, int $column): string
+    {
+        return $line . ':' . $column;
+    }
+
+
     public function check(ProgramNode $program, string $file): void
 {
-    $this->file = $file;
+     $this->file = $file;
+        $this->resolvedCalls = [];
 
     // Un seul scope global partagé par tous les statements top-level
     $globalScope = new Scope(null, 'global');
@@ -642,6 +663,7 @@ private function checkForeach(ForeachStmt $stmt, Context $ctx): void
             $expr instanceof NewExpr          => $this->checkNew($expr, $ctx),
             $expr instanceof InstanceofExpr   => $this->checkInstanceof($expr, $ctx),
             $expr instanceof ArrayLiteralExpr => $this->checkArrayLiteral($expr, $ctx),
+            $expr instanceof ConstExpr => $this->checkConst($expr),
             default => throw new TypeError(
                 "Expression non supportée : " . $expr::class,
                 $this->file,
@@ -949,16 +971,19 @@ private function checkForeach(ForeachStmt $stmt, Context $ctx): void
         $expr->args,
     );
 
-    $func = $this->overloads->resolve(
-        $overloads,
-        $argTypes,
-        $name,
-        $this->file,
-        $expr->line(),
-        $expr->column(),
-    );
+     $func = $this->overloads->resolve(
+            $overloads,
+            $argTypes,
+            $name,
+            $this->file,
+            $expr->line(),
+            $expr->column(),
+        );
 
-    return $func->returnType ?? new MixedType();
+        // Enregistrer la résolution pour le codegen
+        $this->resolvedCalls[$this->keyOf($expr->line(), $expr->column())] = $func;
+
+        return $func->returnType ?? new MixedType();
 }
 
     private function checkIndex(IndexExpr $expr, Context $ctx): Type
@@ -1092,15 +1117,18 @@ private function checkForeach(ForeachStmt $stmt, Context $ctx): void
 
     // Résoudre la surcharge
     $method = $this->overloads->resolve(
-        $overloads,
-        $argTypes,
-        "{$targetType->name}::{$expr->method}",
-        $this->file,
-        $expr->line(),
-        $expr->column(),
-    );
+            $overloads,
+            $argTypes,
+            "{$targetType->name}::{$expr->method}",
+            $this->file,
+            $expr->line(),
+            $expr->column(),
+        );
 
-    return $method->returnType ?? new MixedType();
+        // Enregistrer la résolution pour le codegen
+        $this->resolvedCalls[$this->keyOf($expr->line(), $expr->column())] = $method;
+
+        return $method->returnType ?? new MixedType();
 }
 /**
  * Trouve la classe qui déclare réellement la méthode.
@@ -1167,7 +1195,17 @@ private function findDeclaringClass(string $className, string $methodName): ?Cla
             $expr->method,
             $expr->args,
         );
-        return $this->checkMethodCall($virtual, $ctx);
+        $result = $this->checkMethodCall($virtual, $ctx);
+
+        // La résolution a été enregistrée pour $virtual, mais le codegen
+        // va chercher la clé de $expr (DotMethodCallExpr). On copie.
+        $keyFrom = $this->keyOf($virtual->line(), $virtual->column());
+        $keyTo = $this->keyOf($expr->line(), $expr->column());
+        if (isset($this->resolvedCalls[$keyFrom])) {
+            $this->resolvedCalls[$keyTo] = $this->resolvedCalls[$keyFrom];
+        }
+
+        return $result;
     }
 
     private function checkNew(NewExpr $expr, Context $ctx): Type
@@ -1202,35 +1240,42 @@ if (in_array('abstract', $class->modifiers, true)) {
 
         // Vérifier le constructeur
         // Résolution du constructeur
-            $ctorOverloads = $class->methods['__construct'] ?? [];
+                    // Résolution du constructeur (avec héritage)
+        $ctorOverloads = $this->members->findMethodOverloads(
+            $class->name,
+            '__construct',
+        );
 
-            if (empty($ctorOverloads)) {
-                if (!empty($expr->args)) {
-                    throw new TypeError(
-                        "La classe '{$class->name}' n'a pas de constructeur, "
-                        . "mais " . count($expr->args) . " argument(s) sont fournis",
-                        $this->file,
-                        $expr->line(),
-                        $expr->column(),
-                    );
-                }
-            } else {
-                $argTypes = array_map(
-                    fn($arg) => $this->checkExpr($arg, $ctx),
-                    $expr->args,
-                );
-
-                $this->overloads->resolve(
-                    $ctorOverloads,
-                    $argTypes,
-                    "{$class->name}::__construct",
+        if (empty($ctorOverloads)) {
+            if (!empty($expr->args)) {
+                throw new TypeError(
+                    "La classe '{$class->name}' n'a pas de constructeur, "
+                    . "mais " . count($expr->args) . " argument(s) sont fournis",
                     $this->file,
                     $expr->line(),
                     $expr->column(),
                 );
             }
+        } else {
+            $argTypes = array_map(
+                fn($arg) => $this->checkExpr($arg, $ctx),
+                $expr->args,
+            );
 
-            return new ClassType($class->name);
+            $ctor = $this->overloads->resolve(
+                $ctorOverloads,
+                $argTypes,
+                "{$class->name}::__construct",
+                $this->file,
+                $expr->line(),
+                $expr->column(),
+            );
+
+            // Enregistrer la résolution
+            $this->resolvedCalls[$this->keyOf($expr->line(), $expr->column())] = $ctor;
+        }
+
+        return new ClassType($class->name);
     }
 
     private function checkInstanceof(InstanceofExpr $expr, Context $ctx): Type
@@ -1355,5 +1400,21 @@ private function computeNarrowedType(Type $current, string $op): ?Type
     return null;
 }
 
-  // checkIf
+  private function checkConst(ConstExpr $expr): Type
+{
+    return match ($expr->name) {
+        'PHP_EOL' => ScalarType::string(),
+        'PHP_INT_MAX', 'PHP_INT_MIN', 'PHP_INT_SIZE' => ScalarType::int(),
+        'PHP_FLOAT_EPSILON', 'PHP_FLOAT_MAX', 'PHP_FLOAT_MIN', 'PHP_FLOAT_DIG' => ScalarType::float(),
+        'M_PI', 'M_E', 'M_LOG2E', 'M_LOG10E', 'M_LN2', 'M_LN10',
+        'M_PI_2', 'M_PI_4', 'M_1_PI', 'M_2_PI', 'M_SQRTPI', 'M_2_SQRTPI',
+        'M_SQRT2', 'M_SQRT3', 'M_SQRT1_2', 'M_EULER' => ScalarType::float(),
+        'NAN', 'INF' => ScalarType::float(),
+        'true', 'false' => ScalarType::bool(),  // au cas où
+        'null' => new NullType(),
+        // Constantes utilisateur (définies par l'utilisateur) : on les accepte
+        // comme mixed pour l'instant (TODO : vraie table de constantes)
+        default => new MixedType(),
+    };
+}
 }

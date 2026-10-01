@@ -1,0 +1,26 @@
+<?pphp
+class Logger {
+    public string $prefix;
+
+    public function __construct(int $level) {
+        $this->prefix = "int-ctor";
+    }
+
+    public function __construct(string $name) {
+        $this->prefix = $name;
+    }
+
+    public function log(string $msg): void {
+        echo "[";
+        echo $this->prefix;
+        echo "] ";
+        echo $msg;
+        echo PHP_EOL;
+    }
+}
+
+Logger $a = new Logger(3);
+$a->log("hello");
+
+Logger $b = new Logger("admin");
+$b->log("world");

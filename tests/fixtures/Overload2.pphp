@@ -1,0 +1,15 @@
+<?pphp
+function greet(int $x): void {
+    echo "int: ";
+    echo $x;
+    echo PHP_EOL;
+}
+
+function greet(string $x): void {
+    echo "string: ";
+    echo $x;
+    echo PHP_EOL;
+}
+
+greet(42);
+greet("hello");

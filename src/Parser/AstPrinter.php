@@ -217,9 +217,13 @@ final class AstPrinter
         $pad = str_repeat('  ', $indent);
 
         switch (true) {
-                        case $expr instanceof \PPhp\Parser\Node\Expr\ThisExpr:
+            case $expr instanceof \PPhp\Parser\Node\Expr\ThisExpr:
                 $lines[] = $pad . 'This';
                 break;
+
+            case $expr instanceof \PPhp\Parser\Node\Expr\ConstExpr:
+                $lines[] = $pad . 'Const(' . $expr->name . ')';
+                break;    
 
             case $expr instanceof \PPhp\Parser\Node\Expr\InstanceofExpr:
                 $lines[] = $pad . 'Instanceof(' . $expr->className . ')';

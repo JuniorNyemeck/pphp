@@ -1,0 +1,7 @@
+<?pphp
+    function divide(int $a, int $b): int {
+        return $a / $b;
+    }
+
+    int $result = divide(10, 0);
+    echo $result;

@@ -37,3 +37,25 @@ if ($x !== null) {
     $x = null;      // réassignation
     int $y = $x;    // PPHP : $y est int (narrowing persiste)
 }
+
+
+### Constantes utilisateur
+
+Actuellement, seules les constantes prédéfinies PHP sont reconnues
+(PHP_EOL, M_PI, etc.). Les constantes définies par l'utilisateur
+(`define('FOO', 42);` ou `const FOO = 42;`) ne sont pas supportées.
+
+À ajouter dans une étape ultérieure : table de constantes dans le GlobalScope.
+
+### Source map : précision des blocs
+
+La source map mappe les lignes générées aux lignes des statements sources.
+Pour un bloc multi-lignes (fonction, classe, if, boucle), toutes les lignes
+internes et le `}` de fermeture sont mappés à la ligne du statement principal,
+pas à leur ligne réelle.
+
+Impact : les erreurs runtime qui pointent sur un `}` de fermeture (très rare)
+afficheront la ligne du statement, pas la ligne exacte.
+
+À améliorer dans une étape ultérieure si nécessaire : tracker la ligne de
+chaque `}` dans le parser.
