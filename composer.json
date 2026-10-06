@@ -11,7 +11,7 @@
             "PPhp\\": "src/"
         }
     },
-    "bin": ["bin/pphp"],
+    "bin": ["bin/pphp.php"],
     "require-dev": {
         "phpunit/phpunit": "^12.5"
     },
